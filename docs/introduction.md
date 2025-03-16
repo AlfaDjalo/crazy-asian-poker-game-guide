@@ -3,6 +3,8 @@ id: introduction
 title: Introduction
 sidebar_label: Introduction
 ---
+New intro file.
+
 Bored with 2 and 4 card poker ? 
 
 Crazy Asian Poker will make poker fun, interesting and exciting again.
