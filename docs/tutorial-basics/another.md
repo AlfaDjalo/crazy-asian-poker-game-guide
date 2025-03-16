@@ -3,7 +3,7 @@ id: another
 title: Another
 sidebar_label: Another
 ---
-This is a new file.
+This is a another new file.
 
 Bored with 2 and 4 card poker ? 
 
