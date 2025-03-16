@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 
 const cardBack = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/Card_back_01.svg/150px-Card_back_01.svg.png";
+const cardBaseURL = "https://deckofcardsapi.com/static/img";
 
 const PokerBoard = () => {
   const [board, setBoard] = useState(Array(5).fill(null));
@@ -18,7 +19,7 @@ const PokerBoard = () => {
     <div>
       <div style={{ display: "flex", gap: "10px" }}>
         {board.map((card, index) => (
-          <img key={index} src={card ? `https://example.com/cards/${card}.png` : cardBack} alt="Card" width="50" />
+          <img key={index} className="poker-card" src={card ? `${cardBaseURL}/${card}.png` : cardBack} alt="Card" />
         ))}
       </div>
       <button onClick={dealNextStreet} disabled={step >= 3}>Deal Next Street</button>
