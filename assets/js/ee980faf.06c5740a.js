@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkcrazy_asian_poker_game_guide=self.webpackChunkcrazy_asian_poker_game_guide||[]).push([[6065],{151:a=>{a.exports=JSON.parse('{"metadata":{"permalink":"/crazy-asian-poker-game-guide/blog","page":1,"postsPerPage":10,"totalPages":1,"totalCount":4,"blogDescription":"Blog","blogTitle":"Blog"}}')}}]);
