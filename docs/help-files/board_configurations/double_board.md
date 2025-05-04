@@ -1,0 +1,34 @@
+---
+title: Double Board
+description: Description of Double Board configuration
+sidebar_position: 1
+---
+
+**Double board**
+
+This is two regular hold'em boards, dealt in the usual manner - three
+card flops for each board, a single turn card for each board, and a
+single river card for each board. The two boards are independent.
+Omaha-style showdown usually used.
+
+Games possible using the double board configurations include:
+
+- Best high/best low (split pot). Also called ultimate high/low. The
+  best high across both boards wins half the pot, and the best low
+  across both boards wins half the pot.
+
+- High/high/hand (3 points). The high on each board is worth one point,
+  plus a third point for the best five card Hand Point.
+
+- Best high/best low/hand (3 points). The best high across both boards
+  is worth one point, the best low across both boards is worth one
+  point, and the best five card Hand Point is worth one point.
+
+- High/low/high/low/hand (5 points). The best high on each board
+  receives one point, the best low on each board receives one point, and
+  the best Hand Point receives one point.
+
+- High/low/high/low/high hand/low hand (6 points). The best high on each
+  board receives one point, the best low on each board receives one
+  point, the best high Hand Point receives one point and the best low
+  Hand Point receives one point.

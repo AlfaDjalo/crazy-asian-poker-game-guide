@@ -1,0 +1,35 @@
+---
+title: Triple Board
+description: Description of Triple Board configuration
+sidebar_position: 2
+---
+
+**Triple board**
+
+This is three regular hold'em boards, dealt in the usual manner - three
+three card flops, three single card turns and three single card rivers.
+The three boards are independent. Omaha-style showdown usually used.
+
+Games possible using the triple board configurations include:
+
+- High/high/high (3 points); The high on each board is worth one point.
+
+- High/high/high/hand (4 points). The high on each board is worth one
+  point, plus one point for the best five card Hand Point.
+
+- Balance (5 points). This is high/high/high/high hand/low hand.
+
+- Tilt (3 points). The high on each board is worth one point.\
+  For Board 1, the third flop card must be used.\
+  For Board 2, the turn card must be used.\
+  For Board 3, the river card must be used.
+
+- Tilt (5 points). The high on each board is worth one point, plus one
+  point for the best five card Hand Point and one point for the best
+  hand using the three mandatory cards.\
+  For Board 1, the third flop card must be used.\
+  For Board 2, the turn card must be used.\
+  For Board 3, the river card must be used.
+
+A variant is to deal a floater on the river, which can be used with any
+board.
