@@ -1,0 +1,37 @@
+---
+title: Pandemic
+description: Description of Pandemic configuration
+sidebar_position: 6
+---
+
+import PokerBoardViewer from "@site/src/components/PokerBoardViewer";
+
+**Pandemic**
+
+The board is dealt out as per the diagram below, with the final board a
+3x3 square.
+
+Point types for pandemic:
+
+- Social distancing. Players must make a five card hand Omaha-style
+  using three board cards that do not share an edge. Ie. no horizontally
+  or vertically adjacent cards. Players can play cards that are touching
+  diagonally.
+
+- Contact tracing. Players must make a five card hand Omaha-style using
+  three board cards that are adjacent. This may be in a line, or in an
+  "L" shape. Touching diagonally is not sufficient.
+
+Games possible using the pandemic configuration include:
+
+- Best high social distancing, best high contact tracing, best Hand
+  Point (3 points);
+
+- Best high/low social distancing, best high/low contact tracing, best
+  Hand Point (5 points);
+
+- Best high/low social distancing, best Hand Point (3 points);
+
+- Best high/low contact tracing, best Hand Point (3 points).
+
+<PokerBoardViewer configPath="/data/boards/pandemic.json" />

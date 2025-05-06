@@ -1,0 +1,41 @@
+---
+title: Bomba
+description: Description of Bomba configuration
+sidebar_position: 7
+---
+
+import PokerBoardViewer from "@site/src/components/PokerBoardViewer";
+
+**Bomba**
+
+Three cards are dealt in a vertical line for "pre-flop".
+
+A second three card vertical line is dealt next to the first one for the
+"flop".
+
+A third three card line is dealt next to the first two, which is the
+"turn". This completes what I will refer to as the "main board".
+
+Two "river" cards are dealt below the three vertical lines of three
+cards each.
+
+A hand is made by taking two hold cards, exactly two cards from any
+single three card vertical line, and exactly one of the two river cards.
+
+Games possible using the Bomba configurations include:
+
+- Best high/best low (split pot). The best high wins half the pot, and
+  the best low wins half the pot.
+
+- Best high/best low/hand (3 points). The best high is worth one point,
+  the best low is worth one point, and the best five card Hand Point is
+  worth one point.
+
+- Variants include dealing one of the river cards to the right of the
+  main board. Hands can then also be made by taking two hold cards,
+  exactly two cards from any single row, and the horizontal river card.
+  Note that in this case vertical hands must use the vertical river
+  card. This allows the game to be played three points (high/high/hand)
+  or five points (high/low/high/low/hand).
+
+<PokerBoardViewer configPath="/data/boards/bomba.json" />

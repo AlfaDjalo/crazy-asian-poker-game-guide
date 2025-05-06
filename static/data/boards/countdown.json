@@ -1,5 +1,5 @@
 {
-    "name":                 "New Game",
+    "name":                 "Countdown",
     "blinds":               [1,2],
     "playerCardSchedule":   [5, 0, 0, 0],
     "boardCardSchedule":    [[],[1, 2, 7], [3, 8, 13], [4, 9, 14, 19]],

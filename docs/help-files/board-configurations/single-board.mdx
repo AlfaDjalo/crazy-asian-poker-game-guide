@@ -1,0 +1,30 @@
+---
+title: Single Board
+description: Description of Single Board configuration
+sidebar_position: 1
+---
+
+import PokerBoardViewer from "@site/src/components/PokerBoardViewer";
+
+**Single board**
+
+This is the standard hold'em boards, dealt in the usual manner - three
+card flops for each board, a single turn card for each board, and a
+single river card for each board.
+
+Games possible using the single board configurations include:
+
+- High only. The best high hand wins. This is the standard for no limit 
+  hold'em or PLO.
+
+- High / low split pot. The best high hand wins half the pot, the best
+  low hand wins half the pot. If there is no low possible then the high
+  hand wins the entire pot. This is the standard for PLO8.
+
+- High / low / hand (3 points). The best high on the board is worth one
+  point, the best low on the board is worth one point, and the best five
+  card Hand Point is worth one point.
+
+
+
+<PokerBoardViewer configPath="/data/boards/single-board.json" />

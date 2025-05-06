@@ -8,18 +8,30 @@ const cardBaseURL = "https://deckofcardsapi.com/static/img";
 // Create a shuffled 52-card deck
 const generateDeck = () => {
   const suits = ["H", "D", "C", "S"];
-  const ranks = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+  const ranks = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "0", "J", "Q", "K"];
   const deck = suits.flatMap(suit => ranks.map(rank => `${rank}${suit}`));
   return deck.sort(() => Math.random() - 0.5);
 };
 
-// PokerCard: renders a single card image
+// PokerCard: renders a single card image or empty space if not dealt
+const CARD_HEIGHT = 60; // px, adjust as needed
+const EMPTY_CARD_STYLE = {
+  display: "inline-block",
+  width: `${Math.round(CARD_HEIGHT * 0.7)}px`, // typical card aspect ratio
+  height: `${CARD_HEIGHT}px`,
+  background: "none",
+};
 const PokerCard = ({ card }) => {
+  if (!card) {
+    // Render empty space for undealt card
+    return <span style={EMPTY_CARD_STYLE} />;
+  }
   return (
     <img
-      src={card ? `${cardBaseURL}/${card}.png` : cardBack}
-      alt={card || "Card back"}
+      src={`${cardBaseURL}/${card}.png`}
+      alt={card}
       className="poker-card"
+      style={{ height: `${CARD_HEIGHT}px`, width: "auto" }}
     />
   );
 };
@@ -27,8 +39,9 @@ const PokerCard = ({ card }) => {
 
 // PokerBoard: renders a single board (one row of cards)
 const PokerBoard = ({ cards }) => {
+  // 25% of card height = 15px (if CARD_HEIGHT=60)
   return (
-    <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
+    <div style={{ display: "flex", gap: "8px", marginBottom: `${Math.round(CARD_HEIGHT * 0.25)}px` }}>
       {cards.map((card, idx) => (
         <PokerCard key={idx} card={card} />
       ))}

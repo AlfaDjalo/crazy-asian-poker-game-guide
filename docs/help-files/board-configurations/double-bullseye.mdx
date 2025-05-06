@@ -1,0 +1,45 @@
+---
+title: Double Bullseye
+description: Description of Double Bullseye configuration
+sidebar_position: 8
+---
+
+import PokerBoardViewer from "@site/src/components/PokerBoardViewer";
+
+**Double bullseye**
+
+Four cards are dealt at the vertices of a 3x3 square for the flop.
+
+The edges of the square are dealt on the turn.
+
+The second bullseye, which is dealt separately to the main board, can be
+dealt on the turn after the edges, or as the second card on the river.
+
+The main bullseye, which is the centre of the square, is dealt on the
+river.
+
+Points are for the best make-5 hand on the main board using any row,
+column or diagonal. Bullseye points can use either or both of the
+bullseye cards.
+
+Games possible using the double bullseye configurations include:
+
+- Best high/best low (split pot). The best high across the main board
+  and the bullseyes wins half the pot, and the best low across the main
+  board and the bullseyes wins half the pot.
+
+- High/high/hand (3 points). The best high on the main board and the on
+  the bullseyes are each worth one point each, plus a third point for
+  the best five card Hand Point.
+
+- Best high/best low/hand (3 points). The best high across the main
+  board and the bullseyes wins half the pot, the best low across the
+  main board and the bullseyes wins half the pot, plus a third point for
+  the best five card Hand Point.
+
+- High/low/high/low/hand (5 points). The best high on the main board and
+  the best high on the bullseyes each receive one point, the best low on
+  the main board and the best low on the bullseyes each receive one
+  point, and the best Hand Point receives one point.
+
+<PokerBoardViewer configPath="/data/boards/double-bullseye.json" />

@@ -1,0 +1,33 @@
+---
+title: Wheel
+description: Description of Wheel configuration
+sidebar_position: 5
+---
+
+import PokerBoardViewer from "@site/src/components/PokerBoardViewer";
+
+**Wheel**
+
+Eight cards are dealt evenly spaced in a wheel.
+
+Point types used:
+
+- Social distancing. Players must make a five card hand Omaha-style
+  using three non-adjacent board cards.
+
+- Contact tracing. Players must make a five card hand Omaha-style using
+  three consecutive board cards.
+
+Games possible using the Wheel configuration include:
+
+- Best high social distancing, best high contact tracing, best Hand
+  Point (3 points);
+
+- Best high/low social distancing, best high/low contact tracing, best
+  Hand Point (5 points);
+
+- Best high/low social distancing, best Hand Point (3 points);
+
+- Best high/low contact tracing, best Hand Point (3 points).
+
+<PokerBoardViewer configPath="/data/boards/wheel.json" />
