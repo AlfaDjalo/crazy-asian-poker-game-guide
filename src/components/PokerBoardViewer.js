@@ -1,4 +1,6 @@
+
 import React, { useEffect, useState } from "react";
+import useBaseUrl from '@docusaurus/useBaseUrl';
 
 const cardBack = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/Card_back_01.svg/150px-Card_back_01.svg.png";
 const cardBaseURL = "https://deckofcardsapi.com/static/img";
@@ -11,71 +13,136 @@ const generateDeck = () => {
   return deck.sort(() => Math.random() - 0.5);
 };
 
-const PokerBoardViewer = ({ configPath = "/data/boards/single-board.json" }) => {
+// PokerCard: renders a single card image
+const PokerCard = ({ card }) => {
+  return (
+    <img
+      src={card ? `${cardBaseURL}/${card}.png` : cardBack}
+      alt={card || "Card back"}
+      className="poker-card"
+    />
+  );
+};
+
+
+// PokerBoard: renders a single board (one row of cards)
+const PokerBoard = ({ cards }) => {
+  return (
+    <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
+      {cards.map((card, idx) => (
+        <PokerCard key={idx} card={card} />
+      ))}
+    </div>
+  );
+};
+
+/**
+ * PokerBoardViewer
+ * @param {string} configPath - Path to config JSON
+ * @param {Array<Array<string>>} [predefinedCards] - Optional: array of arrays of card codes for each board/street
+ */
+const PokerBoardViewer = ({ configPath = "/data/boards/triple-board.json", predefinedCards = null }) => {
+  const resolvedConfigPath = useBaseUrl(configPath);
   const [config, setConfig] = useState(null);
   const [deck, setDeck] = useState([]);
   const [step, setStep] = useState(0);
 
+//   useEffect(() => {
+//     fetch(configPath)
+//       .then((res) => res.json())
+//       .then((data) => {
+//         setConfig(data);
+//         setDeck(generateDeck());
+//         setStep(0);
+//       })
+//       .catch((err) => console.error("Failed to load config", err));
+//   }, [configPath]);
+
   useEffect(() => {
-    fetch(configPath)
-      .then((res) => res.json())
+    console.log("Fetching config from:", resolvedConfigPath);
+    fetch(resolvedConfigPath)
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! Status: ${res.status} — URL: ${resolvedConfigPath}`);
+        }
+        return res.json();
+      })
       .then((data) => {
         setConfig(data);
         setDeck(generateDeck());
         setStep(0);
       })
-      .catch((err) => console.error("Failed to load config", err));
-  }, [configPath]);
+      .catch((err) => {
+        console.error("Failed to load config:", err);
+      });
+  }, [resolvedConfigPath]);
 
+
+  // Deal next street (step)
   const dealNextStreet = () => {
+    if (!config) return;
     setStep((prev) => Math.min(prev + 1, config.boardCardSchedule.length - 1));
   };
 
+  // Reset hand (reshuffle deck if random mode)
   const resetHand = () => {
-    setDeck(generateDeck());
+    if (!predefinedCards) setDeck(generateDeck());
     setStep(0);
   };
 
-  const getBoardCards = () => {
+  // Show only cards dealt up to the current street (step)
+  const getBoardsToShow = () => {
     if (!config) return [];
-
-    // Flatten the boardCardSchedule up to the current step
-    const indices = config.boardCardSchedule
-      .slice(0, step + 1)
-      .flat()
-      .filter((i) => typeof i === "number");
-
-    return indices.map((cardIndex) => deck[cardIndex] || null);
+    if (predefinedCards) {
+      // If using predefinedCards, only show up to the current step for each board
+      // Assume predefinedCards is an array of arrays, each array is the full set of cards for a board
+      // and config.boardCardSchedule defines which cards are dealt at each step
+      return predefinedCards.map((boardCards, boardIdx) => {
+        // For each board, get the indices to show up to current step
+        let indicesToShow = [];
+        for (let s = 0; s <= step; s++) {
+          if (config.boardCardSchedule[s]) {
+            indicesToShow = indicesToShow.concat(config.boardCardSchedule[s]);
+          }
+        }
+        // Only show cards for this board that are in indicesToShow (adjusted for board offset)
+        const offset = boardIdx * boardCards.length;
+        return boardCards.map((card, i) =>
+          indicesToShow.includes(i + 1 + offset) ? card : null
+        );
+      });
+    }
+    // Otherwise, use the deck and boardCardSchedule
+    // Determine how many boards there are by the highest index in boardCardSchedule
+    const cardsPerBoard = 6;
+    // Get all indices to show up to the current step
+    let indicesToShow = [];
+    for (let s = 0; s <= step; s++) {
+      if (config.boardCardSchedule[s]) {
+        indicesToShow = indicesToShow.concat(config.boardCardSchedule[s]);
+      }
+    }
+    // Find the max index to determine number of boards
+    const allIndices = config.boardCardSchedule.flat().filter(i => typeof i === "number");
+    const maxIndex = allIndices.length > 0 ? Math.max(...allIndices) : -1;
+    const numBoards = Math.ceil((maxIndex + 1) / cardsPerBoard);
+    // For each board, show only cards that have been dealt
+    const boards = [];
+    for (let b = 0; b < numBoards; b++) {
+      const boardCards = [];
+      for (let i = 1; i <= cardsPerBoard; i++) {
+        const cardIdx = b * cardsPerBoard + i;
+        boardCards.push(indicesToShow.includes(cardIdx) ? deck[cardIdx] || null : null);
+      }
+      boards.push(boardCards);
+    }
+    return boards;
   };
 
+  // Render all boards (each as a row)
   const renderBoards = () => {
-    if (!config) return null;
-
-    // Get each board as its own list of indices
-    const fullSchedule = config.boardCardSchedule
-      .slice(0, step + 1)
-      .flat()
-      .filter((i) => typeof i === "number");
-
-    // Group cards by street (based on original config)
-    const boards = config.boardCardSchedule.map((street, i) =>
-      i <= step
-        ? street.map((index) => deck[index] || null)
-        : []
-    );
-
-    return boards.map((streetCards, i) => (
-      <div key={i} style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-        {streetCards.map((card, idx) => (
-          <img
-            key={idx}
-            src={card ? `${cardBaseURL}/${card}.png` : cardBack}
-            alt={`Card ${idx}`}
-            className="poker-card"
-          />
-        ))}
-      </div>
-    ));
+    const boards = getBoardsToShow();
+    return boards.map((cards, i) => <PokerBoard key={i} cards={cards} />);
   };
 
   if (!config) return <p>Loading...</p>;
