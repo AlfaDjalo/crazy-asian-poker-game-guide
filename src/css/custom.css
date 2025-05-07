@@ -32,3 +32,18 @@
   height: 120px;
   object-fit: cover;
 }
+
+/* Center the title rendered from front matter */
+.theme-doc-title {
+  text-align: center;
+  font-size: 2.5rem; /* Optional: make it bigger */
+  margin-top: 1rem;
+}
+
+/* Make your image larger and center it */
+.centered-image {
+  display: block;
+  margin: 2rem auto;
+  max-width: 100%;
+  width: 600px;
+}

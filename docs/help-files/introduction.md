@@ -1,7 +1,7 @@
 ---
 title: Introduction
 description: Introduction to Crazy Asian Poker
-sidebar_position: 1
+sidebar_position: 2
 ---
 
 **Chapter 1: Introduction**

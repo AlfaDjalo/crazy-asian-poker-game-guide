@@ -22,6 +22,11 @@ const sidebars = {
   tutorialSidebar: [
     {
       type: 'doc',
+      id: 'help-files/index', // path relative to /docs (no .md)
+      label: 'Official Game Guide',         // This is how it appears in the sidebar
+    },
+    {
+      type: 'doc',
       id: 'help-files/introduction', // path relative to /docs (no .md)
       label: 'Introduction',         // This is how it appears in the sidebar
     },

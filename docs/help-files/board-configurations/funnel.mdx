@@ -1,0 +1,30 @@
+---
+title: Funnel
+description: Description of Funnel board configuration
+sidebar_position: 11
+---
+
+import PokerBoardViewer from "@site/src/components/PokerBoardViewer";
+
+**Funnel**
+
+Three flops are dealt, each with three cards.
+
+Two turns are dealt, each with two cards.
+
+One river is dealt with one card.
+
+To make a hand a player uses cards from one flop, one turn and the
+river. The turn must make a path from the flop to the turn - ie. if
+using flop 1, a player can only use turn 1. If using flop 2, a player
+can use either turn. If using flop 3, a player must use turn 2.
+
+Variants of Funnel include:
+
+- High/ low (split pot);
+
+- High/low/hand (3 points).
+
+There are also variants using different numbers of turn and river cards.
+
+<PokerBoardViewer configPath="/data/boards/funnel.json" />
