@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkcrazy_asian_poker_game_guide=self.webpackChunkcrazy_asian_poker_game_guide||[]).push([[235],{8552:e=>{e.exports=JSON.parse('{"name":"docusaurus-plugin-content-pages","id":"default"}')}}]);

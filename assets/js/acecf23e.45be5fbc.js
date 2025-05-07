@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkcrazy_asian_poker_game_guide=self.webpackChunkcrazy_asian_poker_game_guide||[]).push([[1903],{1912:a=>{a.exports=JSON.parse('{"blogBasePath":"/crazy-asian-poker-game-guide/blog","blogTitle":"Blog","authorsListPath":"/crazy-asian-poker-game-guide/blog/authors"}')}}]);
