@@ -14,7 +14,7 @@ const config = {
   title: 'Crazy Asian Poker Game Guide',
 
   tagline: 'Crazy Asian Poker',
-  favicon: 'img/favicon.ico',
+  favicon: 'img/CAP.jpg', //'img/favicon.ico',
   
   // Set the production url of your site here
   url: 'https://AlfaDjalo.github.io',  // Replace with your GitHub username
@@ -50,24 +50,12 @@ const config = {
           sidebarPath: './sidebars.js',
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
+          routeBasePath: '/', // Makes docs-only mode
           editUrl:
             'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
         },
-        blog: {
-          showReadingTime: true,
-          feedOptions: {
-            type: ['rss', 'atom'],
-            xslt: true,
-          },
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
-          editUrl:
-            'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
-          // Useful options to enforce blogging best practices
-          onInlineTags: 'warn',
-          onInlineAuthors: 'warn',
-          onUntruncatedBlogPosts: 'warn',
-        },
+        blog: false,
+        // pages: false,
         theme: {
           customCss: './src/css/custom.css',
         },
@@ -84,7 +72,7 @@ const config = {
         title: 'CAP Game Guide',
         logo: {
           alt: 'My Site Logo',
-          src: 'img/logo.svg',
+          src: 'img/CAP.jpg',
         },
         items: [
           {
@@ -93,7 +81,6 @@ const config = {
             position: 'left',
             label: 'Help Guide',
           },
-          {to: '/blog', label: 'Blog', position: 'left'},
           {
             href: 'https://github.com/AlfaDjalo/crazy-asian-poker-game-guide',
             label: 'GitHub',
@@ -108,8 +95,8 @@ const config = {
             title: 'Docs',
             items: [
               {
-                label: 'Tutorial',
-                to: '/docs/intro',
+                label: 'Game Guide',
+                to: '/',
               },
             ],
           },
@@ -117,16 +104,8 @@ const config = {
             title: 'Community',
             items: [
               {
-                label: 'Stack Overflow',
-                href: 'https://stackoverflow.com/questions/tagged/docusaurus',
-              },
-              {
-                label: 'Discord',
-                href: 'https://discordapp.com/invite/docusaurus',
-              },
-              {
-                label: 'X',
-                href: 'https://x.com/docusaurus',
+                label: 'YouTube',
+                href: 'https://www.youtube.com/@crazyasianpoker241',
               },
             ],
           },
@@ -134,12 +113,12 @@ const config = {
             title: 'More',
             items: [
               {
-                label: 'Blog',
-                to: '/blog',
+                label: 'Contact Us',
+                to: '/contact',
               },
               {
                 label: 'GitHub',
-                href: 'https://github.com/facebook/docusaurus',
+                href: 'https://github.com/AlfaDjalo/crazy-asian-poker-game-guide',
               },
             ],
           },
