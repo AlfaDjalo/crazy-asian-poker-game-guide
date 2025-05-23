@@ -1,0 +1,14 @@
+/* PokerBoard.css */
+
+.poker-board {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.poker-board-empty-slot {
+  display: inline-block;
+  width: 42px;
+  height: 60px;
+  background: none;
+}

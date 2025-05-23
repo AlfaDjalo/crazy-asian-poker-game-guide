@@ -1,0 +1,33 @@
+/* PokerCard.css */
+
+:root {
+  --card-height: 60px;
+  --card-aspect-ratio: 0.7;
+  --card-width: calc(var(--card-height) * var(--card-aspect-ratio));
+}
+
+.poker-card {
+  height: var(--card-height);
+  width: auto;
+  border-radius: 4px;
+}
+
+.poker-card-empty {
+  display: inline-block;
+  width: var(--card-width);
+  height: var(--card-height);
+  background: none;
+}
+
+.poker-card-error {
+  border: 1px solid red;
+  height: var(--card-height);
+  width: var(--card-width);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #f8f8f8;
+  color: #333;
+  font-weight: bold;
+  border-radius: 4px;
+}
