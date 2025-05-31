@@ -4,8 +4,6 @@ description: Description of Payout Types
 sidebar_position: 3
 ---
 
-**_Payout types_**
-
 Games usually consist of multiple components. There are two main ways to
 determine payouts based on the component results:
 

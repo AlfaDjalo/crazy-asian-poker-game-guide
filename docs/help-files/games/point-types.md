@@ -4,8 +4,6 @@ description: Description of Point Types
 sidebar_position: 5
 ---
 
-**_Point Types_**
-
 Points can be divided along two dimensions -- board point vs hand point,
 and high point vs low point. It is much more common for hand points to
 be high points than low points.

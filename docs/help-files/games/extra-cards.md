@@ -4,8 +4,6 @@ description: Options for extra cards
 sidebar_position: 8
 ---
 
-**_Extra cards_**
-
 A number of Extra Card options have been used in CAP.
 
 **ESG**

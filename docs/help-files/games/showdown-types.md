@@ -4,8 +4,6 @@ description: Description of Showdown Types
 sidebar_position: 4
 ---
 
-**_Showdown types_**
-
 There are three showdown types used in CAP:
 
 - Omaha-style. Must use two hold cards and three board cards.

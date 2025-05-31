@@ -4,8 +4,6 @@ description: Introduction to Crazy Asian Poker
 sidebar_position: 2
 ---
 
-**Chapter 1: Introduction**
-
 Bored with 2 and 4 card poker ? Crazy Asian Poker will make poker fun,
 interesting and exciting again.
 

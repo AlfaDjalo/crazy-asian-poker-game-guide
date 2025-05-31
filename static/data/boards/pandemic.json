@@ -1,5 +1,5 @@
 {
-    "name":                 "Pandemic - 2d",
+    "name":                 "Pandemic",
     "blinds":               [1,2],
     "playerCardSchedule":   [6, 0, 0, 0],
     "boardCardSchedule":    [[],["000", "100", "200", "210", "220"],["120", "020"],["010", "110"]],

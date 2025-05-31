@@ -6,8 +6,6 @@ sidebar_position: 7
 
 import PokerBoardViewer from "@site/src/components/PokerBoardViewer";
 
-**Bomba**
-
 Three cards are dealt in a vertical line for "pre-flop".
 
 A second three card vertical line is dealt next to the first one for the
@@ -21,6 +19,8 @@ cards each.
 
 A hand is made by taking two hold cards, exactly two cards from any
 single three card vertical line, and exactly one of the two river cards.
+
+<PokerBoardViewer configPath="/data/boards/bomba.json" />
 
 Games possible using the Bomba configurations include:
 
@@ -37,5 +37,3 @@ Games possible using the Bomba configurations include:
   Note that in this case vertical hands must use the vertical river
   card. This allows the game to be played three points (high/high/hand)
   or five points (high/low/high/low/hand).
-
-<PokerBoardViewer configPath="/data/boards/bomba.json" />

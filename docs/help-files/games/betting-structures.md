@@ -4,8 +4,6 @@ description: Description of Betting Structures
 sidebar_position: 7
 ---
 
-**_Betting structures_**
-
 **Blinds**
 
 Most CAP games use the standard small blind/big blind structure of

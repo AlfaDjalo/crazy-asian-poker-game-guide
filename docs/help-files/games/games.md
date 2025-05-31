@@ -4,8 +4,6 @@ description: Description of Games
 sidebar_position: 2
 ---
 
-**Chapter 2: Games**
-
 There are many different games played in CAP. Players are encouraged to
 innovate.
 

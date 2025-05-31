@@ -6,12 +6,12 @@ sidebar_position: 2
 
 import PokerBoardViewer from "@site/src/components/PokerBoardViewer";
 
-**Double board**
-
 This is two regular hold'em boards, dealt in the usual manner - three
 card flops for each board, a single turn card for each board, and a
 single river card for each board. The two boards are independent.
 Omaha-style showdown usually used.
+
+<PokerBoardViewer configPath="/data/boards/double-board.json" />
 
 Games possible using the double board configurations include:
 
@@ -34,5 +34,3 @@ Games possible using the double board configurations include:
   board receives one point, the best low on each board receives one
   point, the best high Hand Point receives one point and the best low
   Hand Point receives one point.
-
-<PokerBoardViewer configPath="/data/boards/double-board.json" />

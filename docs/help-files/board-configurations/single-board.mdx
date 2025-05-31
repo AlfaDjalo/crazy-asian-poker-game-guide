@@ -6,11 +6,11 @@ sidebar_position: 1
 
 import PokerBoardViewer from "@site/src/components/PokerBoardViewer";
 
-**Single board**
-
 This is the standard hold'em boards, dealt in the usual manner - three
 card flops for each board, a single turn card for each board, and a
 single river card for each board.
+
+<PokerBoardViewer configPath="/data/boards/single-board.json" />
 
 Games possible using the single board configurations include:
 
@@ -24,7 +24,3 @@ Games possible using the single board configurations include:
 - High / low / hand (3 points). The best high on the board is worth one
   point, the best low on the board is worth one point, and the best five
   card Hand Point is worth one point.
-
-
-
-<PokerBoardViewer configPath="/data/boards/single-board.json" />
