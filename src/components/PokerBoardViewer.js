@@ -396,12 +396,17 @@ const PokerBoardViewer = ({
           <div key={rowIndex} className="poker-row">
             {Array(BOARD_COLS).fill(null).map((_, colIndex) => {
               const cardObj = boardState[rowIndex][colIndex];
-              // const boardName = config?.boardNames?.[rowIndex]; // Get board name for this row
-              const boardName = config?.boardNames?.[rowIndex.toString().padStart(2, '0')];
-              console.log(`Row ${rowIndex}, looking for key "${rowIndex.toString().padStart(2, '0')}", boardNames:`, config?.boardNames, `found: "${boardName}"`);
+              
+              // Check if there should be a board name at this centered position
+              // We need to reverse the centering to find the original position
+              const originalRow = rowIndex - centeringOffsets.rowOffset;
+              const originalCol = colIndex - centeringOffsets.colOffset;
+              const cellKey = `${originalRow}${originalCol}`;
+              const boardName = (originalRow >= 0 && originalCol >= 0) ? config?.boardNames?.[cellKey] : null;
+              
               return (
                 <div key={`${rowIndex}-${colIndex}`} className="poker-cell">
-                  {colIndex === 0 && boardName && (
+                  {boardName && (
                     <div className="board-name">{boardName}</div>
                   )}
                   {cardObj && (
@@ -420,6 +425,7 @@ const PokerBoardViewer = ({
       </div>
     );
   };
+
 
   // const renderBoard = () => {
   //   return (
@@ -459,11 +465,11 @@ const PokerBoardViewer = ({
     <div className="poker-board-viewer">
       <h3>{config.name}</h3>
       
-      {config.blinds && (
+      {/* {config.blinds && (
         <div className="blinds">
           Blinds: {config.blinds.join('/')}
         </div>
-      )}
+      )} */}
       
       {renderBoard()}
       
@@ -482,13 +488,13 @@ const PokerBoardViewer = ({
         </button>
       </div>
       
-      <div className="debug-info">
+      {/* <div className="debug-info">
         <div>Current step: {step + 1}/{config.boardCardSchedule?.length || 0}</div>
         <div>Cards dealt: {dealtCount}</div>
         <div>Selected cards: {selectedCards.size}</div>
         <div>Mode: {flattenedPredefinedCards ? "Predefined cards" : "Random deck"}</div>
         <div>Centering offsets: row={centeringOffsets.rowOffset}, col={centeringOffsets.colOffset}</div>
-      </div>
+      </div> */}
     </div>
   );
 };

@@ -4,13 +4,17 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
 }
 
 .poker-grid {
   display: flex;
   flex-direction: column; /* Stack rows vertically */
-  gap: 0; /* Remove gaps for seamless felt */
-  margin: 20px 0;
+  gap: 8px; /* Add vertical spacing between rows */
+  margin: 20px auto; /* Center the grid horizontally */
   border: 8px solid #2d5a27; /* Dark green border like table rail */
   border-radius: 20px;
   padding: 20px;
@@ -40,19 +44,21 @@
 .poker-row {
   display: flex;
   flex-direction: row; /* Arrange cells horizontally within each row */
-  gap: 0; /* No gaps between cells */
+  gap: 4px; /* Add horizontal spacing between cells */
+  justify-content: center; /* Center each row */
 }
 
 .poker-cell {
-  position: relative; /* Add this */
+  position: relative;
   width: 60px;
-  height: 84px;
+  min-height: 90px; /* Increased minimum height to accommodate board names */
   /* Remove borders and background - invisible cells on felt */
   border: none;
   background: transparent;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end; /* Align cards to bottom of cell */
   position: relative;
 }
 
@@ -61,6 +67,7 @@
   transition: all 0.3s ease;
   /* Add subtle shadow to make cards appear to sit on felt */
   filter: drop-shadow(2px 4px 8px rgba(0,0,0,0.3));
+  margin-top: auto; /* Push cards to bottom of cell */
 }
 
 .card-container:hover {
@@ -91,7 +98,7 @@
 
 .poker-board-viewer h3 {
   margin-bottom: 15px;
-  color: #333;
+  color: #fff;
   font-size: 1.5rem;
   text-align: center;
 }
@@ -112,14 +119,16 @@
 
 .board-name {
   position: absolute;
-  top: -25px;
+  top: 0; /* Position at top of cell */
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(-50%); /* Center horizontally */
   font-size: 12px;
   font-weight: bold;
   color: #fff;
   text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
   white-space: nowrap;
+  z-index: 10;
+  margin-bottom: 4px;
 }
 
 .controls {
@@ -169,6 +178,7 @@
   border-radius: 6px;
   border-left: 4px solid #2d5a27;
   backdrop-filter: blur(5px);
+  text-align: center;
 }
 
 .debug-info div {
