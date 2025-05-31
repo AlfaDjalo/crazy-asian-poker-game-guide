@@ -2,7 +2,7 @@
     "name":                 "Wheel",
     "blinds":               [1,2],
     "playerCardSchedule":   [5, 0, 0, 0],
-    "boardCardSchedule":    [[],[1, 2, 3, 9],[15, 14],[13, 7]],
+    "boardCardSchedule":    [[],["020", "131", "140", "231"],["220", "211"],["100", "111"]],
     "showdownOptions":      [{"type": "Contact Tracing High/Low/Hand",
                             "points": [[2, "bestHiLo", [[1, 2, 3], [2, 3, 9], [3, 9, 15], [9, 15, 14], [15, 14, 13], [14, 13, 7], [13, 7, 1], [7, 1, 2]]], [1, "bestHand", [[]]]],
                             "splitPot": false},

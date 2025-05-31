@@ -2,7 +2,7 @@
     "name":                 "Countdown",
     "blinds":               [1,2],
     "playerCardSchedule":   [5, 0, 0, 0],
-    "boardCardSchedule":    [[],[1, 2, 7], [3, 8, 13], [4, 9, 14, 19]],
+    "boardCardSchedule":    [[],["000", "010", "100"], ["020", "110", "200"], ["030", "120", "210", "300"]],
     "showdownOptions":      [{"type": "Five Points High/Hand",
                             "points": [[1, "bestMixedLengthHigh", [[1, 2, 3, 4], [1, 7, 13, 19]]], [1, "bestMixedLengthHigh", [[7, 8, 9], [2, 8, 14]]], [1, "bestMixedLengthHigh", [[13, 14], [3, 9]]], [1, "bestMixedLengthHigh", [[19], [4]]], [1, "bestHand", [[]]]],
                             "splitPot": false}]

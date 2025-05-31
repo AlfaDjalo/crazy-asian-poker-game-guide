@@ -1,8 +1,7 @@
 {
     "name":                 "Single Board",
     "blinds":               [1,2],
-    "playerCardSchedule":   [4, 0, 0, 0],
-    "boardCardSchedule":    [[],[8, 9, 10], [11], [12]],
+    "boardCardSchedule":    [[],["000", "010", "020"], ["030"], ["040"]],
     "showdownPoints":       [[1, "bestHigh", [[8, 9, 10, 11, 12]]]],
     "showdownOptions":      [{"type": "PLO",
                             "points": [[1, "bestHigh", [[8, 9, 10, 11, 12]]]],
