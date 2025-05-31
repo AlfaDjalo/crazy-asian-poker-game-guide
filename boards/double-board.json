@@ -1,8 +1,8 @@
 {
     "name":                 "Double Board",
     "blinds":               [1,2],
-    "boardCardSchedule":    [[],["000", "010", "020", "100", "110", "120"],["030", "130"],["040", "140"]],
-    "boardNames":           {"00": "Board 1", "10": "Board 2"},
+    "playerCardSchedule":   [6, 0, 0, 0],
+    "boardCardSchedule":    [[],[1, 2, 3, 7, 8, 9],[4, 10],[5, 11]],
     "showdownOptions":      [{"type": "High",
                             "points": [[1, "bestHigh", [[1, 2, 3, 4, 5]]], [1, "bestHigh", [[7, 8, 9, 10, 11]]]],
                             "splitPot": true},

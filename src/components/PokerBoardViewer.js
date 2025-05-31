@@ -1,29 +1,176 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import useBaseUrl from '@docusaurus/useBaseUrl';
-import PokerBoard from './PokerBoard';
+import PokerCard from './PokerCard';
 import { generateDeck, isValidCard } from './deckUtils';
+import "../css/poker-board-viewer.css";
+
+// Constants
+const BOARD_ROWS = 5;
+const BOARD_COLS = 10;
+const DEFAULT_DEAL_DELAY = 1000;
+
+// Offset types
+const OFFSET_NONE = 0;
+const OFFSET_UP = 1;
+const OFFSET_RIGHT = 2;
 
 /**
- * Main component that displays and controls poker boards based on a specific config format
- * @param {Object} props - Component props
- * @param {string} props.configPath - Path to config JSON
- * @param {Array<Array<string>>} [props.predefinedCards] - Optional array of arrays of card codes for each board
- * @param {number} [props.dealDelayMs] - Optional delay between dealing cards in ms
+ * Parse position string (xyz format) into row, col, and offset
+ * @param {string} positionStr - Position in xyz format (e.g., "341")
+ * @returns {Object} { row, col, offset }
+ */
+const parsePosition = (positionStr) => {
+  const str = positionStr.toString();
+  if (str.length !== 3) {
+    console.error(`Invalid position format: ${positionStr}. Expected xyz format.`);
+    return null;
+  }
+  
+  const row = parseInt(str[0], 10);
+  const col = parseInt(str[1], 10);
+  const offset = parseInt(str[2], 10);
+  
+  if (row >= BOARD_ROWS || col >= BOARD_COLS || ![0, 1, 2].includes(offset)) {
+    console.error(`Invalid position values: row=${row}, col=${col}, offset=${offset}`);
+    return null;
+  }
+  
+  return { row, col, offset };
+};
+
+/**
+ * Get the display position for a card based on its offset
+ * @param {number} row - Original row
+ * @param {number} col - Original column  
+ * @param {number} offset - Offset type (0=none, 1=up, 2=right)
+ * @returns {Object} { displayRow, displayCol }
+ */
+const getDisplayPosition = (row, col, offset) => {
+  // switch (offset) {
+  //   case OFFSET_UP:
+  //     return { displayRow: Math.max(0, row - 1), displayCol: col };
+  //   case OFFSET_RIGHT:
+  //     return { displayRow: row, displayCol: Math.min(BOARD_COLS - 1, col + 1) };
+  //   default:
+  //     return { displayRow: row, displayCol: col };
+  // }
+  // Keep cards in their original positions regardless of offset
+  return { displayRow: row, displayCol: col };
+};
+
+/**
+ * Calculate centering offsets for dealt cards
+ * @param {Array} positions - Array of position strings
+ * @returns {Object} { rowOffset, colOffset }
+ */
+
+const calculateCenteringOffsets = (positions) => {
+  if (!positions || positions.length === 0) {
+    return { rowOffset: 0, colOffset: 0 };
+  }
+
+  let minRow = BOARD_ROWS;
+  let maxRow = -1;
+  let minCol = BOARD_COLS;
+  let maxCol = -1;
+
+  // Find the bounding box of all dealt cards
+  positions.forEach(positionStr => {
+    const position = parsePosition(positionStr);
+    if (position) {
+      const { displayRow, displayCol } = getDisplayPosition(position.row, position.col, position.offset);
+      minRow = Math.min(minRow, displayRow);
+      maxRow = Math.max(maxRow, displayRow);
+      minCol = Math.min(minCol, displayCol);
+      maxCol = Math.max(maxCol, displayCol);
+    }
+  });
+
+  // Calculate the size of the bounding box
+  const usedRows = maxRow - minRow + 1;
+  const usedCols = maxCol - minCol + 1;
+
+  // Calculate offsets to center the cards
+  const rowOffset = Math.floor((BOARD_ROWS - usedRows) / 2) - minRow;
+  const colOffset = Math.floor((BOARD_COLS - usedCols) / 2) - minCol;
+
+  return { rowOffset, colOffset };
+};
+
+/**
+ * Main poker board viewer component with 5x10 grid layout
  */
 const PokerBoardViewer = ({ 
   configPath = "/data/boards/double-board.json", 
   predefinedCards = null, 
-  dealDelayMs = 1000 
+  dealDelayMs = DEFAULT_DEAL_DELAY 
 }) => {
   const resolvedConfigPath = useBaseUrl(configPath);
+  
+  // State management
   const [config, setConfig] = useState(null);
   const [deck, setDeck] = useState([]);
   const [step, setStep] = useState(0);
   const [dealtCount, setDealtCount] = useState(0);
   const [isDealing, setIsDealing] = useState(false);
   const [error, setError] = useState(null);
-  const [boardStates, setBoardStates] = useState([]);
+  const [selectedCards, setSelectedCards] = useState(new Set());
   
+  // Board state: 5x10 grid where each cell can contain a card object
+  const [boardState, setBoardState] = useState(() => 
+    Array(BOARD_ROWS).fill(null).map(() => Array(BOARD_COLS).fill(null))
+  );
+
+  // Flatten predefined cards if they're in nested array format
+  const flattenedPredefinedCards = useMemo(() => {
+    if (!predefinedCards) return null;
+    
+    // Check if it's a nested array structure
+    if (Array.isArray(predefinedCards) && predefinedCards.length > 0 && Array.isArray(predefinedCards[0])) {
+      return predefinedCards.flat();
+    }
+    
+    return predefinedCards;
+  }, [predefinedCards]);
+
+  // Reset game state
+  const resetGameState = useCallback(() => {
+    setStep(0);
+    setDealtCount(0);
+    setIsDealing(false);
+    setSelectedCards(new Set());
+    setBoardState(Array(BOARD_ROWS).fill(null).map(() => Array(BOARD_COLS).fill(null)));
+  }, []);
+
+  // Validate predefined cards format
+  const validatePredefinedCards = (cards) => {
+    if (!Array.isArray(cards)) return false;
+    
+    return cards.every(card => card === null || isValidCard(card));
+  };
+
+  // Get all positions that should be dealt up to current step
+  const getPositionsThroughStep = useCallback((targetStep) => {
+    if (!config?.boardCardSchedule) return [];
+    
+    let allPositions = [];
+    for (let s = 0; s <= targetStep; s++) {
+      if (s < config.boardCardSchedule.length) {
+        allPositions = [...allPositions, ...config.boardCardSchedule[s]];
+      }
+    }
+    return allPositions;
+  }, [config]);
+
+// Calculate centering offsets based on ALL cards that will be dealt (final layout)
+  const centeringOffsets = useMemo(() => {
+    if (!config?.boardCardSchedule) return { rowOffset: 0, colOffset: 0 };
+    
+    // Get all positions from all steps to calculate centering based on final layout
+    const allPositions = config.boardCardSchedule.flat();
+    return calculateCenteringOffsets(allPositions);
+  }, [config]);
+
   // Load configuration
   useEffect(() => {
     console.log("Fetching config from:", resolvedConfigPath);
@@ -44,276 +191,261 @@ const PokerBoardViewer = ({
         setDeck(newDeck);
         console.log("Generated random deck:", newDeck);
         
-        // Initialize state
-        setStep(0);
-        setDealtCount(0);
-        setIsDealing(false);
-        setError(null);
-        
-        // Initialize board states based on config
-        initializeBoards(data, newDeck);
+        // Reset state
+        resetGameState();
       })
       .catch((err) => {
         console.error("Failed to load config:", err);
         setError(`Failed to load config: ${err.message}`);
       });
-  }, [resolvedConfigPath]);
+  }, [resolvedConfigPath, resetGameState]);
 
-  // Debug predefined cards
+  // Validate predefined cards if provided
   useEffect(() => {
-    if (predefinedCards) {
-      console.log("PredefinedCards provided:", predefinedCards);
-      
-      // Validate predefined cards
-      const isValid = validatePredefinedCards(predefinedCards);
-      if (!isValid) {
-        setError("Invalid predefined cards format");
-      }
+    if (flattenedPredefinedCards && !validatePredefinedCards(flattenedPredefinedCards)) {
+      setError("Invalid predefined cards format");
     }
-  }, [predefinedCards]);
+  }, [flattenedPredefinedCards]);
 
-  // Validate predefined cards format
-  const validatePredefinedCards = (cards) => {
-    if (!Array.isArray(cards)) return false;
-    
-    // Check each board's cards
-    for (const board of cards) {
-      if (!Array.isArray(board)) return false;
-      
-      // Check each card
-      for (const card of board) {
-        // Allow null cards (empty spaces)
-        if (card !== null && !isValidCard(card)) {
-          console.error("Invalid card found:", card);
-          return false;
-        }
-      }
-    }
-    
-    return true;
-  };
-
-  // Initialize board states based on config
-  const initializeBoards = useCallback((configData, randomDeck) => {
-    if (!configData || !configData.boardCardSchedule) return;
-    
-    // Find the maximum global index to determine board layout
-    const allIndices = configData.boardCardSchedule.flat();
-    if (allIndices.length === 0) {
-      setError("No board cards defined in configuration");
-      return;
-    }
-
-    // --- FIX: Group indices by 6s, starting from 1 (1-6, 7-12, ...)
-    // Find min and max index
-    const minIndex = Math.min(...allIndices);
-    const maxIndex = Math.max(...allIndices);
-    // Boards are: [1-6], [7-12], [13-18], ...
-    const cardsPerBoard = 6;
-    const numBoards = Math.ceil((maxIndex - minIndex + 1) / cardsPerBoard);
-    const boards = [];
-    for (let b = 0; b < numBoards; b++) {
-      const start = minIndex + b * cardsPerBoard;
-      const end = start + cardsPerBoard - 1;
-      // Only include indices that are actually present in allIndices
-      const boardIndices = [];
-      for (let idx = start; idx <= end; idx++) {
-        if (allIndices.includes(idx)) {
-          boardIndices.push(idx);
-        }
-      }
-      boards.push(boardIndices);
-    }
-
-    console.log("Detected board structure (by 6s):", boards);
-    console.log(`Initializing ${boards.length} boards with ${cardsPerBoard} card slots each`);
-
-    // Create empty boards with the right number of card slots
-    const initialBoards = Array(boards.length).fill().map(() => Array(cardsPerBoard).fill(null));
-    setBoardStates(initialBoards);
-
-    // Check if predefined cards match the detected structure
-    if (predefinedCards) {
-      if (predefinedCards.length < boards.length) {
-        console.warn(`Config requires ${boards.length} boards, but only ${predefinedCards.length} provided`);
-      }
-      // Additional validation - check cards per board
-      predefinedCards.forEach((boardCards, i) => {
-        if (boardCards.length < cardsPerBoard) {
-          console.warn(`Board ${i+1} should have ${cardsPerBoard} cards, but only ${boardCards.length} provided`);
-        }
-      });
-    }
-  }, [predefinedCards]);
-
-  // Get the current step's card indices from the board card schedule
-  const getCurrentStepIndices = useCallback(() => {
-    if (!config || !config.boardCardSchedule) return [];
-    
-    return step < config.boardCardSchedule.length ? config.boardCardSchedule[step] : [];
-  }, [config, step]);
-
-  // Get all indices that should be dealt up to the current step
-  const getAllIndicesThroughCurrentStep = useCallback(() => {
-    if (!config || !config.boardCardSchedule) return [];
-    
-    let allIndices = [];
-    for (let s = 0; s <= step; s++) {
-      if (s < config.boardCardSchedule.length) {
-        allIndices = [...allIndices, ...config.boardCardSchedule[s]];
-      }
-    }
-    return allIndices;
-  }, [config, step]);
-
-  // Animate dealing cards for the current street
+  // Deal animation effect
   useEffect(() => {
     if (!config || !isDealing) return;
     
-    // Get all indices that should be dealt up to this point
-    const indicesToDeal = getAllIndicesThroughCurrentStep();
+    const positionsToDeal = getPositionsThroughStep(step);
     
-    // Get current step indices
-    const currentStepIndices = getCurrentStepIndices();
-    
-    // Calculate how many cards we've already dealt from previous steps
-    const previouslyDealt = indicesToDeal.length - currentStepIndices.length;
-    
-    // If we're still dealing cards for this step
-    if (dealtCount < indicesToDeal.length) {
+    if (dealtCount < positionsToDeal.length) {
       const timer = setTimeout(() => {
-        // Deal the next card
-        const indexToDeal = indicesToDeal[dealtCount];
-        dealCardToBoard(indexToDeal);
+        const positionToDeal = positionsToDeal[dealtCount];
+        dealCardToPosition(positionToDeal, dealtCount, centeringOffsets);
         setDealtCount(dealtCount + 1);
       }, dealDelayMs);
+      
       return () => clearTimeout(timer);
     } else {
       setIsDealing(false);
     }
-  }, [dealtCount, isDealing, config, step, dealDelayMs, getAllIndicesThroughCurrentStep, getCurrentStepIndices]);
+  }, [dealtCount, isDealing, config, step, dealDelayMs, getPositionsThroughStep, centeringOffsets]);
 
-  // Deal a specific card to the appropriate board position
-  const dealCardToBoard = (globalIndex) => {
-    if (!globalIndex) return;
+  // Deal a card to a specific position
+  const dealCardToPosition = (positionStr, cardIndex, offsets) => {
+    const position = parsePosition(positionStr);
+    if (!position) return;
     
-    // Translate global index to board index and position
-    // This requires analyzing the config to determine which board this index belongs to
+    const { row, col, offset } = position;
+    const { displayRow, displayCol } = getDisplayPosition(row, col, offset);
     
-    // Analyze groups in the configuration boardCardSchedule
-    const allIndices = config.boardCardSchedule.flat();
-    const sortedIndices = [...allIndices].sort((a, b) => a - b);
+    // Apply centering offsets
+    const centeredRow = Math.max(0, Math.min(BOARD_ROWS - 1, displayRow + offsets.rowOffset));
+    const centeredCol = Math.max(0, Math.min(BOARD_COLS - 1, displayCol + offsets.colOffset));
     
-    // Group consecutive indices to detect board boundaries
-    const boards = [];
-    let currentBoard = [];
-    
-    sortedIndices.forEach((index, i) => {
-      if (i === 0 || index === sortedIndices[i-1] + 1) {
-        // Consecutive index, add to current board
-        currentBoard.push(index);
-      } else {
-        // Non-consecutive index, start a new board
-        if (currentBoard.length > 0) {
-          boards.push(currentBoard);
-        }
-        currentBoard = [index];
-      }
-    });
-    
-    // Add the last board
-    if (currentBoard.length > 0) {
-      boards.push(currentBoard);
+    // Get card to deal
+    let cardToDeal = null;
+    if (flattenedPredefinedCards && cardIndex < flattenedPredefinedCards.length) {
+      cardToDeal = flattenedPredefinedCards[cardIndex];
+    } else {
+      cardToDeal = deck[cardIndex] || null;
     }
     
-    // Find which board this index belongs to
-    let targetBoardIndex = -1;
-    let positionInBoard = -1;
+    console.log(`Dealing card ${cardToDeal} to position ${positionStr} (${row},${col}) -> display (${displayRow},${displayCol}) -> centered (${centeredRow},${centeredCol})`);
     
-    for (let i = 0; i < boards.length; i++) {
-      const boardIndices = boards[i];
-      const indexPosition = boardIndices.indexOf(globalIndex);
-      
-      if (indexPosition !== -1) {
-        targetBoardIndex = i;
-        positionInBoard = indexPosition;
-        break;
-      }
-    }
+    // Create card object with position info
+    const cardObj = {
+      card: cardToDeal,
+      originalRow: row,
+      originalCol: col,
+      offset: offset,
+      displayRow: centeredRow,
+      displayCol: centeredCol,
+      positionStr: positionStr,
+      isSelected: false
+    };
     
-    if (targetBoardIndex === -1) {
-      console.error(`Could not find board for index ${globalIndex}`);
-      return;
-    }
-    
-    setBoardStates(prevBoards => {
-      // Create a deep copy of the board states
-      const newBoards = JSON.parse(JSON.stringify(prevBoards));
-      
-      // Get the card to deal (either predefined or from random deck)
-      let cardToDeal = null;
-      
-      if (predefinedCards && 
-          predefinedCards[targetBoardIndex] && 
-          positionInBoard < predefinedCards[targetBoardIndex].length) {
-        cardToDeal = predefinedCards[targetBoardIndex][positionInBoard];
-        console.log(`Dealing predefined card: ${cardToDeal} to board ${targetBoardIndex}, position ${positionInBoard}`);
-      } else {
-        // Use card from random deck
-        // We use the global index as the index into the deck, with 1-based to 0-based conversion
-        cardToDeal = deck[globalIndex - 1] || null;
-        console.log(`Dealing random card: ${cardToDeal} to board ${targetBoardIndex}, position ${positionInBoard}`);
-      }
-      
-      // Update the board state with the card
-      if (newBoards[targetBoardIndex]) {
-        newBoards[targetBoardIndex][positionInBoard] = cardToDeal;
-      }
-      
-      return newBoards;
+    setBoardState(prevBoard => {
+      const newBoard = prevBoard.map(row => [...row]);
+      newBoard[centeredRow][centeredCol] = cardObj;
+      return newBoard;
     });
   };
 
-  // Deal next street (step) with animation
+  // Handle card selection
+  const handleCardClick = (cardObj) => {
+    if (!cardObj) return;
+    
+    console.log(`Card clicked: ${cardObj.card} at (${cardObj.originalRow},${cardObj.originalCol}), currently selected: ${cardObj.isSelected}`);
+
+    const { originalRow, originalCol, offset } = cardObj;
+    const cardKey = `${originalRow}-${originalCol}`;
+    
+    setSelectedCards(prev => {
+      const newSelected = new Set(prev);
+      if (newSelected.has(cardKey)) {
+        newSelected.delete(cardKey);
+      } else {
+        newSelected.add(cardKey);
+      }
+      console.log(`Selection toggled. New selection state:`, newSelected);
+      return newSelected;
+    });
+    
+    // Update board state to reflect selection
+    setBoardState(prevBoard => {
+      const newBoard = prevBoard.map(row => [...row]);
+      const cardKey = `${originalRow}-${originalCol}`;
+      const isSelected = !cardObj.isSelected; // Toggle based on current state
+      
+      // Find and update the card in place
+      for (let r = 0; r < BOARD_ROWS; r++) {
+        for (let c = 0; c < BOARD_COLS; c++) {
+          const cell = newBoard[r][c];
+          if (cell && cell.originalRow === originalRow && cell.originalCol === originalCol) {
+            newBoard[r][c] = {
+              ...cell,
+              isSelected: isSelected
+            };
+            break;
+          }
+        }
+      }
+      
+      return newBoard;
+    });
+
+
+
+    // Update board state to reflect selection
+    // setBoardState(prevBoard => {
+    //   const newBoard = prevBoard.map(row => [...row]);
+      
+    //   // Find and update the card
+    //   for (let r = 0; r < BOARD_ROWS; r++) {
+    //     for (let c = 0; c < BOARD_COLS; c++) {
+    //       const cell = newBoard[r][c];
+    //       if (cell && cell.originalRow === originalRow && cell.originalCol === originalCol) {
+    //         // Toggle selection and update display position
+    //         const isSelected = !cell.isSelected;
+    //         const newOffset = isSelected ? OFFSET_UP : offset;
+    //         const { displayRow, displayCol } = getDisplayPosition(originalRow, originalCol, newOffset);
+            
+    //         // Apply centering offsets
+    //         const centeredRow = Math.max(0, Math.min(BOARD_ROWS - 1, displayRow + centeringOffsets.rowOffset));
+    //         const centeredCol = Math.max(0, Math.min(BOARD_COLS - 1, displayCol + centeringOffsets.colOffset));
+            
+    //         // Clear old position
+    //         newBoard[r][c] = null;
+            
+    //         // Set new position
+    //         newBoard[centeredRow][centeredCol] = {
+    //           ...cell,
+    //           isSelected: isSelected,
+    //           offset: newOffset,
+    //           displayRow: centeredRow,
+    //           displayCol: centeredCol
+    //         };
+    //         break;
+    //       }
+      //   }
+      // }
+      
+    //   return newBoard;
+    // });
+  };
+
+  // Deal next street
   const dealNextStreet = () => {
+    console.log("dealNextStreet called, current step:", step, "config length:", config?.boardCardSchedule?.length);
     if (!config || step >= config.boardCardSchedule.length - 1) return;
     
     const nextStep = step + 1;
-    
-    // Get all indices that will be dealt up to the next step
-    const allIndices = [];
-    for (let s = 0; s <= nextStep; s++) {
-      allIndices.push(...config.boardCardSchedule[s]);
-    }
-    
-    // Calculate how many cards we've already dealt
-    const currentIndices = [];
-    for (let s = 0; s <= step; s++) {
-      currentIndices.push(...config.boardCardSchedule[s]);
-    }
+    const currentPositions = getPositionsThroughStep(step);
     
     setStep(nextStep);
     setIsDealing(true);
-    setDealtCount(currentIndices.length); // Start from cards we've already dealt
+    setDealtCount(currentPositions.length);
   };
 
-  // Reset hand (reshuffle deck if random mode)
+  // Auto-deal preflop cards
+  useEffect(() => {
+    if (config && step === 0 && !isDealing && dealtCount === 0 && config.boardCardSchedule?.length > 0) {
+      console.log("Auto-starting preflop deal");
+      setIsDealing(true);
+    }
+  }, [config]);
+
+  // useEffect(() => {
+  //   if (config && step === 0 && !isDealing && dealtCount === 0) {
+  //     setIsDealing(true);
+  //   }
+  // }, [config, step, isDealing, dealtCount]);
+
+  // Reset hand
   const resetHand = () => {
-    if (!predefinedCards) {
+    if (!flattenedPredefinedCards) {
       const newDeck = generateDeck();
       setDeck(newDeck);
       console.log("Reshuffled deck:", newDeck);
     }
     
-    setStep(0);
-    setDealtCount(0);
-    setIsDealing(false);
-    
-    // Reset all boards to empty
-    if (config) {
-      initializeBoards(config, deck);
-    }
+    resetGameState();
   };
+
+  // Render the 5x10 grid
+  const renderBoard = () => {
+    return (
+      <div className="poker-grid">
+        {Array(BOARD_ROWS).fill(null).map((_, rowIndex) => (
+          <div key={rowIndex} className="poker-row">
+            {Array(BOARD_COLS).fill(null).map((_, colIndex) => {
+              const cardObj = boardState[rowIndex][colIndex];
+              // const boardName = config?.boardNames?.[rowIndex]; // Get board name for this row
+              const boardName = config?.boardNames?.[rowIndex.toString().padStart(2, '0')];
+              console.log(`Row ${rowIndex}, looking for key "${rowIndex.toString().padStart(2, '0')}", boardNames:`, config?.boardNames, `found: "${boardName}"`);
+              return (
+                <div key={`${rowIndex}-${colIndex}`} className="poker-cell">
+                  {colIndex === 0 && boardName && (
+                    <div className="board-name">{boardName}</div>
+                  )}
+                  {cardObj && (
+                    <div 
+                      className={`card-container ${cardObj.isSelected ? 'selected' : ''} ${cardObj.offset === OFFSET_UP ? 'offset-up' : ''} ${cardObj.offset === OFFSET_RIGHT ? 'offset-right' : ''}`}
+                      onClick={() => handleCardClick(cardObj)}
+                    >
+                      <PokerCard card={cardObj.card} />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  // const renderBoard = () => {
+  //   return (
+  //     <div className="poker-grid">
+  //       {Array(BOARD_ROWS).fill(null).map((_, rowIndex) => (
+  //         <div key={rowIndex} className="poker-row">
+  //           {Array(BOARD_COLS).fill(null).map((_, colIndex) => {
+  //             const cardObj = boardState[rowIndex][colIndex];
+  //             return (
+  //               <div key={`${rowIndex}-${colIndex}`} className="poker-cell">
+  //                 {cardObj && (
+  //                   <div 
+  //                     className={`card-container ${cardObj.isSelected ? 'selected' : ''} ${cardObj.offset === OFFSET_UP ? 'offset-up' : ''} ${cardObj.offset === OFFSET_RIGHT ? 'offset-right' : ''}`}
+  //                     onClick={() => handleCardClick(cardObj)}
+  //                   >
+  //                     <PokerCard card={cardObj.card} />
+  //                   </div>
+  //                 )}
+  //               </div>
+  //             );
+  //           })}
+  //         </div>
+  //       ))}
+  //     </div>
+  //   );
+  // };
 
   if (error) {
     return <div className="error-message">Error: {error}</div>;
@@ -327,22 +459,15 @@ const PokerBoardViewer = ({
     <div className="poker-board-viewer">
       <h3>{config.name}</h3>
       
-      {/* Display blinds if available */}
       {config.blinds && (
-        <div className="blinds" style={{ marginBottom: "10px" }}>
+        <div className="blinds">
           Blinds: {config.blinds.join('/')}
         </div>
       )}
       
-      {boardStates.map((boardCards, idx) => (
-        <PokerBoard 
-          key={`board-${idx}`} 
-          cards={boardCards} 
-          boardIndex={idx} 
-        />
-      ))}
+      {renderBoard()}
       
-      <div className="controls" style={{ marginTop: "10px" }}>
+      <div className="controls">
         <button
           onClick={dealNextStreet}
           disabled={step >= config.boardCardSchedule.length - 1 || isDealing}
@@ -351,17 +476,18 @@ const PokerBoardViewer = ({
         </button>
         <button 
           onClick={resetHand} 
-          style={{ marginLeft: "10px" }} 
           disabled={isDealing}
         >
           Replay Hand
         </button>
       </div>
       
-      <div className="debug-info" style={{ marginTop: "15px", fontSize: "0.8em", color: "#666" }}>
-        <div>Current step: {step + 1}/{config.boardCardSchedule.length}</div>
+      <div className="debug-info">
+        <div>Current step: {step + 1}/{config.boardCardSchedule?.length || 0}</div>
         <div>Cards dealt: {dealtCount}</div>
-        <div>Mode: {predefinedCards ? "Predefined cards" : "Random deck"}</div>
+        <div>Selected cards: {selectedCards.size}</div>
+        <div>Mode: {flattenedPredefinedCards ? "Predefined cards" : "Random deck"}</div>
+        <div>Centering offsets: row={centeringOffsets.rowOffset}, col={centeringOffsets.colOffset}</div>
       </div>
     </div>
   );

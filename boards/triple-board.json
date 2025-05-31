@@ -1,7 +1,8 @@
 {
-    "name": "Flying Rivers",
+    "name": "Triple Board",
     "blinds": [1,2],
-    "boardCardSchedule": [[],["000", "010", "020", "100", "110", "120"],["030", "130"],["141", "151"]],
+    "playerCardSchedule": [7, 0, 0, 0],
+    "boardCardSchedule": [[],[1, 2, 3, 7, 8, 9, 13, 14, 15],[4, 10, 16],[5, 11, 17]],
     "showdownOptions":      [{"type": "Three Points High",
                             "points": [[1, "bestHigh", [[1, 2, 3, 4, 5]]], [1, "bestHigh", [[7, 8, 9, 10, 11]]], [1, "bestHigh", [[13, 14, 15, 16, 17]]]],
                             "splitPot": false},
