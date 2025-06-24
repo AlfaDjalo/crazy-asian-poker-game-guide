@@ -8,6 +8,7 @@ import "../css/poker-board-viewer.css";
 const BOARD_ROWS = 5;
 const BOARD_COLS = 10;
 const DEFAULT_DEAL_DELAY = 1000;
+const HAND_SIZE = 2; // Standard poker hand size
 
 // Offset types
 const OFFSET_NONE = 0;
@@ -89,15 +90,28 @@ const calculateCenteringOffsets = (positions) => {
 };
 
 /**
- * Main poker board viewer component with 5x10 grid layout
+ * Validate player hand format
+ * @param {Array} hand - Array of cards or nulls
+ * @returns {boolean} 
+ */
+const validatePlayerHand = (hand) => {
+  if (!Array.isArray(hand)) return false;
+  if (hand.length !== HAND_SIZE) return false;
+  
+  return hand.every(card => card === null || isValidCard(card));
+};
+
+/**
+ * Main poker board viewer component with 5x10 grid layout and optional player hands
  */
 const PokerBoardViewer = ({ 
   configPath = "/data/boards/double-board.json", 
   predefinedCards = null, 
   dealDelayMs = DEFAULT_DEAL_DELAY,
-  playerHandCards = null, // array of card codes for the player hand, or null for random
-  playerHandSize = 2, // number of cards in the player hand (default 2)
-  dealPlayerHand = false // NEW: only deal player hand if true
+  showPlayer1 = false,
+  showPlayer2 = false,
+  player1Hand = null,
+  player2Hand = null
 }) => {
   const resolvedConfigPath = useBaseUrl(configPath);
   
@@ -110,32 +124,16 @@ const PokerBoardViewer = ({
   const [error, setError] = useState(null);
   const [selectedCards, setSelectedCards] = useState(new Set());
   
+  // Player hand states
+  const [player1Cards, setPlayer1Cards] = useState([null, null]);
+  const [player2Cards, setPlayer2Cards] = useState([null, null]);
+  const [selectedPlayer1Cards, setSelectedPlayer1Cards] = useState(new Set());
+  const [selectedPlayer2Cards, setSelectedPlayer2Cards] = useState(new Set());
+  
   // Board state: 5x10 grid where each cell can contain a card object
   const [boardState, setBoardState] = useState(() => 
     Array(BOARD_ROWS).fill(null).map(() => Array(BOARD_COLS).fill(null))
   );
-  
-  // Player hand state - FIXED: Store the actual player hand cards persistently
-  const [playerHand, setPlayerHand] = useState(Array(playerHandSize).fill(null));
-  const [playerHandDealt, setPlayerHandDealt] = useState(dealPlayerHand ? 0 : playerHandSize);
-  const [isDealingPlayerHand, setIsDealingPlayerHand] = useState(false);
-  const [playerHandInitialized, setPlayerHandInitialized] = useState(false);
-  
-  // FIXED: Generate initial player hand cards and store them persistently
-  const generateInitialPlayerHand = useCallback(() => {
-    if (playerHandCards && Array.isArray(playerHandCards) && playerHandCards.length > 0) {
-      return [
-        ...playerHandCards.slice(0, playerHandSize),
-        ...Array(Math.max(0, playerHandSize - playerHandCards.length)).fill(null)
-      ];
-    } else if (deck.length > 0) {
-      // Generate random cards from the full deck (not filtered by board cards)
-      const shuffledDeck = [...deck].sort(() => Math.random() - 0.5);
-      return shuffledDeck.slice(0, playerHandSize);
-    } else {
-      return Array(playerHandSize).fill(null);
-    }
-  }, [playerHandCards, playerHandSize, deck]);
 
   // Flatten predefined cards if they're in nested array format
   const flattenedPredefinedCards = useMemo(() => {
@@ -155,8 +153,9 @@ const PokerBoardViewer = ({
     setDealtCount(0);
     setIsDealing(false);
     setSelectedCards(new Set());
+    setSelectedPlayer1Cards(new Set());
+    setSelectedPlayer2Cards(new Set());
     setBoardState(Array(BOARD_ROWS).fill(null).map(() => Array(BOARD_COLS).fill(null)));
-    // Don't reset player hand state here - handle it separately
   }, []);
 
   // Validate predefined cards format
@@ -188,6 +187,48 @@ const PokerBoardViewer = ({
     return calculateCenteringOffsets(allPositions);
   }, [config]);
 
+  // Initialize player hands
+  const initializePlayerHands = useCallback(() => {
+    if (!deck.length) return;
+    
+    let deckIndex = 0;
+    const totalBoardCards = config?.boardCardSchedule ? config.boardCardSchedule.flat().length : 0;
+    
+    // Skip board cards in the deck for player hands
+    if (flattenedPredefinedCards) {
+      deckIndex = flattenedPredefinedCards.length;
+    } else {
+      deckIndex = totalBoardCards;
+    }
+    
+    // Initialize Player 1 hand
+    if (showPlayer1) {
+      if (player1Hand && validatePlayerHand(player1Hand)) {
+        setPlayer1Cards([...player1Hand]);
+      } else {
+        const hand = [
+          deck[deckIndex] || null,
+          deck[deckIndex + 1] || null
+        ];
+        setPlayer1Cards(hand);
+        deckIndex += 2;
+      }
+    }
+    
+    // Initialize Player 2 hand
+    if (showPlayer2) {
+      if (player2Hand && validatePlayerHand(player2Hand)) {
+        setPlayer2Cards([...player2Hand]);
+      } else {
+        const hand = [
+          deck[deckIndex] || null,
+          deck[deckIndex + 1] || null
+        ];
+        setPlayer2Cards(hand);
+      }
+    }
+  }, [deck, config, showPlayer1, showPlayer2, player1Hand, player2Hand, flattenedPredefinedCards]);
+
   // Load configuration
   useEffect(() => {
     console.log("Fetching config from:", resolvedConfigPath);
@@ -217,24 +258,33 @@ const PokerBoardViewer = ({
       });
   }, [resolvedConfigPath, resetGameState]);
 
-  // FIXED: Initialize player hand once when deck is available
+  // Initialize player hands when deck is ready
   useEffect(() => {
-    if (!dealPlayerHand) return;
-    if (deck.length > 0 && !playerHandInitialized) {
-      const initialHand = generateInitialPlayerHand();
-      setPlayerHand(initialHand);
-      setPlayerHandDealt(0);
-      setPlayerHandInitialized(true);
-      console.log("Initial player hand generated:", initialHand);
+    if (deck.length > 0 && config) {
+      initializePlayerHands();
     }
-  }, [dealPlayerHand, deck.length, playerHandInitialized]); // Remove generateInitialPlayerHand from deps
+  }, [deck, config, initializePlayerHands]);
 
-  // Validate predefined cards if provided
+  // Validate predefined cards and player hands if provided
   useEffect(() => {
     if (flattenedPredefinedCards && !validatePredefinedCards(flattenedPredefinedCards)) {
       setError("Invalid predefined cards format");
+      return;
     }
-  }, [flattenedPredefinedCards]);
+    
+    if (player1Hand && !validatePlayerHand(player1Hand)) {
+      setError("Invalid player 1 hand format - must be array of exactly 2 cards");
+      return;
+    }
+    
+    if (player2Hand && !validatePlayerHand(player2Hand)) {
+      setError("Invalid player 2 hand format - must be array of exactly 2 cards");
+      return;
+    }
+    
+    // Clear error if all validations pass
+    setError(null);
+  }, [flattenedPredefinedCards, player1Hand, player2Hand]);
 
   // Deal animation effect
   useEffect(() => {
@@ -254,20 +304,6 @@ const PokerBoardViewer = ({
       setIsDealing(false);
     }
   }, [dealtCount, isDealing, config, step, dealDelayMs, getPositionsThroughStep, centeringOffsets]);
-
-  // Animate dealing player hand
-  useEffect(() => {
-    if (!dealPlayerHand) return;
-    if (!isDealingPlayerHand) return;
-    if (playerHandDealt < playerHand.filter(Boolean).length) {
-      const timeout = setTimeout(() => {
-        setPlayerHandDealt(playerHandDealt + 1);
-      }, dealDelayMs);
-      return () => clearTimeout(timeout);
-    } else {
-      setIsDealingPlayerHand(false);
-    }
-  }, [isDealingPlayerHand, playerHandDealt, playerHand, dealDelayMs, dealPlayerHand]);
 
   // Deal a card to a specific position
   const dealCardToPosition = (positionStr, cardIndex, offsets) => {
@@ -310,7 +346,7 @@ const PokerBoardViewer = ({
     });
   };
 
-  // Handle card selection
+  // Handle board card selection
   const handleCardClick = (cardObj) => {
     if (!cardObj) return;
     
@@ -354,6 +390,33 @@ const PokerBoardViewer = ({
     });
   };
 
+  // Handle player card selection
+  const handlePlayerCardClick = (player, cardIndex) => {
+    const cardKey = `card-${cardIndex}`;
+    
+    if (player === 1) {
+      setSelectedPlayer1Cards(prev => {
+        const newSelected = new Set(prev);
+        if (newSelected.has(cardKey)) {
+          newSelected.delete(cardKey);
+        } else {
+          newSelected.add(cardKey);
+        }
+        return newSelected;
+      });
+    } else {
+      setSelectedPlayer2Cards(prev => {
+        const newSelected = new Set(prev);
+        if (newSelected.has(cardKey)) {
+          newSelected.delete(cardKey);
+        } else {
+          newSelected.add(cardKey);
+        }
+        return newSelected;
+      });
+    }
+  };
+
   // Deal next street
   const dealNextStreet = () => {
     console.log("dealNextStreet called, current step:", step, "config length:", config?.boardCardSchedule?.length);
@@ -367,67 +430,46 @@ const PokerBoardViewer = ({
     setDealtCount(currentPositions.length);
   };
 
-  // FIXED: Reset hand (generate new random cards)
+  // Auto-deal preflop cards
+  useEffect(() => {
+    if (config && step === 0 && !isDealing && dealtCount === 0 && config.boardCardSchedule?.length > 0) {
+      console.log("Auto-starting preflop deal");
+      setIsDealing(true);
+    }
+  }, [config]);
+
+  // Reset hand
   const resetHand = () => {
-    console.log("Reset hand called");
-    
-    // Reset board state
-    resetGameState();
-    
-    // Generate new deck if not using predefined cards
-    if (!flattenedPredefinedCards) {
+    if (!flattenedPredefinedCards || !player1Hand || !player2Hand) {
       const newDeck = generateDeck();
       setDeck(newDeck);
       console.log("Reshuffled deck:", newDeck);
     }
     
-    // Reset and regenerate player hand
-    if (dealPlayerHand) {
-      setPlayerHandInitialized(false);
-      setPlayerHandDealt(0);
-      setIsDealingPlayerHand(false);
-      
-      // Generate new player hand immediately
-      const newPlayerHand = generateInitialPlayerHand();
-      setPlayerHand(newPlayerHand);
-      setPlayerHandInitialized(true);
-      console.log("New player hand generated:", newPlayerHand);
-    }
+    resetGameState();
   };
 
-  // Render the player hand below the board
-  const renderPlayerHand = () => {
-    if (!dealPlayerHand) return null;
-    const visibleCards = playerHand.filter(Boolean).slice(0, playerHandDealt);
-    const overlap = 0.6;
-    const cardWidth = 42;
-    const cardHeight = 60;
-    
+  // Render player hand
+  const renderPlayerHand = (cards, selectedCards, player, label) => {
     return (
-      <div style={{
-        display: 'flex',
-        flexDirection: 'row',
-        alignItems: 'flex-end',
-        margin: '20px 0 0 0',
-        height: `${cardHeight}px`,
-        position: 'relative',
-        justifyContent: 'center',
-      }}>
-        {visibleCards.map((card, idx) => (
-          <div
-            key={`player-card-${idx}`}
-            style={{
-              position: 'absolute',
-              left: `${idx * cardWidth * (1 - overlap)}px`,
-              zIndex: idx,
-              boxShadow: idx === visibleCards.length - 1 ? '0 2px 8px rgba(0,0,0,0.2)' : 'none',
-              borderRadius: '4px',
-            }}
-          >
-            <PokerCard card={card} />
-          </div>
-        ))}
-        <div style={{ width: `${(playerHandSize - 1) * cardWidth * (1 - overlap) + cardWidth}px`, height: `${cardHeight}px`, visibility: 'hidden' }} />
+      <div className={`player-hand player-${player}`}>
+        <div className="player-label">{label}</div>
+        <div className="hand-cards">
+          {cards.map((card, index) => {
+            const cardKey = `card-${index}`;
+            const isSelected = selectedCards.has(cardKey);
+            
+            return (
+              <div 
+                key={cardKey}
+                className={`card-container ${isSelected ? 'selected' : ''}`}
+                onClick={() => handlePlayerCardClick(player, index)}
+              >
+                <PokerCard card={card} />
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
   };
@@ -470,30 +512,6 @@ const PokerBoardViewer = ({
     );
   };
 
-  // Auto-deal preflop cards and player hand
-  useEffect(() => {
-    if (!config) return;
-    if (step !== 0) return; // Only auto-deal on step 0
-    if (isDealing) return; // Don't start if already dealing
-    if (dealtCount > 0) return; // Don't start if cards already dealt
-    
-    const hasPreflop = config.boardCardSchedule?.length > 0 && config.boardCardSchedule[0].length > 0;
-    const shouldDealPlayerHand = dealPlayerHand && playerHandInitialized && playerHandDealt === 0;
-    
-    // Start dealing if there are preflop cards OR if we need to deal player hand
-    if (hasPreflop || shouldDealPlayerHand) {
-      console.log("Auto-starting deal - hasPreflop:", hasPreflop, "shouldDealPlayerHand:", shouldDealPlayerHand);
-      
-      if (hasPreflop) {
-        setIsDealing(true);
-      }
-      
-      if (shouldDealPlayerHand) {
-        setIsDealingPlayerHand(true);
-      }
-    }
-  }, [config, step, isDealing, dealtCount, dealPlayerHand, playerHandInitialized, playerHandDealt]);
-
   if (error) {
     return <div className="error-message">Error: {error}</div>;
   }
@@ -505,8 +523,16 @@ const PokerBoardViewer = ({
   return (
     <div className="poker-board-viewer">
       <h3>{config.name}</h3>
+      
+      {/* Player 1 Hand (above board) */}
+      {showPlayer1 && renderPlayerHand(player1Cards, selectedPlayer1Cards, 1, "Player 1")}
+      
+      {/* Board */}
       {renderBoard()}
-      {renderPlayerHand()}
+      
+      {/* Player 2 Hand (below board) */}
+      {showPlayer2 && renderPlayerHand(player2Cards, selectedPlayer2Cards, 2, "Player 2")}
+      
       <div className="controls">
         <button
           onClick={dealNextStreet}

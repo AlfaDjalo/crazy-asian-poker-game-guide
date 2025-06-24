@@ -1,0 +1,82 @@
+/* Add these styles to your existing poker-board-viewer.css file */
+
+/* Player hand container */
+.player-hand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 20px 0;
+  padding: 15px;
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}
+
+/* Player label */
+.player-label {
+  font-weight: bold;
+  font-size: 1.1em;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+/* Hand cards container */
+.hand-cards {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+/* Player-specific styling */
+.player-1 {
+  background-color: rgba(59, 130, 246, 0.1); /* Light blue background */
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.player-1 .player-label {
+  color: #2563eb;
+}
+
+.player-2 {
+  background-color: rgba(239, 68, 68, 0.1); /* Light red background */
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.player-2 .player-label {
+  color: #dc2626;
+}
+
+/* Ensure player hand cards have proper cursor and hover effects */
+.player-hand .card-container {
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.player-hand .card-container:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Selected player cards */
+.player-hand .card-container.selected {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+  border: 2px solid #fbbf24;
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 768px) {
+  .player-hand {
+    margin: 15px 0;
+    padding: 10px;
+  }
+  
+  .hand-cards {
+    gap: 8px;
+  }
+  
+  .player-label {
+    font-size: 1em;
+    margin-bottom: 8px;
+  }
+}
