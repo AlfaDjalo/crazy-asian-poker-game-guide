@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { evaluateCards } from '../phe/lib/phe.js';
+import { evaluateCards, evaluateLowHandRank } from '../phe/lib/phe.js';
+import { cardCodesToRanks } from './evaluateLowHand.js';
 
 // Helper to get all k-combinations of an array
 function k_combinations(arr, k) {
@@ -25,7 +26,7 @@ function k_combinations(arr, k) {
  * @param {Array<string>} boardCards - Array of board card codes (e.g., ["2C", "3D", "4S", ...])
  * @returns JSX with best hand and all evaluated hands
  */
-const PokerHandEvaluator = ({ playerHand, boardCards, onReset, isShowdown }) => {
+const PokerHandEvaluator = ({ playerHand, boardCards, onReset, isShowdown, mode = 'high' }) => {
   // Selection state for player and board cards
   const [selectedPlayer, setSelectedPlayer] = useState([]); // indices of selected player cards
   const [selectedBoard, setSelectedBoard] = useState([]);   // indices of selected board cards
@@ -49,7 +50,13 @@ const PokerHandEvaluator = ({ playerHand, boardCards, onReset, isShowdown }) => 
         });
         let value;
         try {
-          value = evaluateCards(combo);
+          if (mode === 'low') {
+            // Convert to rank numbers for low hand evaluation
+            const ranks = cardCodesToRanks(combo);
+            value = evaluateLowHandRank(ranks);
+          } else {
+            value = evaluateCards(combo);
+          }
         } catch (e) {
           value = 'Invalid';
         }
@@ -57,7 +64,7 @@ const PokerHandEvaluator = ({ playerHand, boardCards, onReset, isShowdown }) => 
       }
     }
     return hands;
-  }, [playerHand, boardCards]);
+  }, [playerHand, boardCards, mode]);
 
   // Find the best hand (lowest value)
   const bestHand = useMemo(() => {
@@ -103,7 +110,7 @@ const PokerHandEvaluator = ({ playerHand, boardCards, onReset, isShowdown }) => 
 
   return (
     <div style={{ marginTop: 20 }}>
-      <h4>Best 5-card Hand</h4>
+      <h4>Best 5-card Hand ({mode === 'low' ? 'Low' : 'High'})</h4>
       {bestHand ? (
         <div>
           <b>Cards:</b> {bestHand.cards.join(" ")}<br />

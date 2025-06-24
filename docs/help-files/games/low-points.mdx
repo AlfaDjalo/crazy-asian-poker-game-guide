@@ -33,10 +33,11 @@ There are a number of ways in which the best low hand can be determined:
   predefinedCards={[["AS", "2C", "9H"],["QC"],["7D"]]}
   playerHandSize={4}
   dealPlayerHand={true}
+  playerHandCards={["3C", "4S", "JH", "JC"]}
   renderExtra={({ playerHand, boardState }) => {
     const boardCards = boardState
       ? boardState.flat().filter(cell => cell && cell.card).map(cell => cell.card)
       : [];
-    return <PokerHandEvaluator playerHand={playerHand} boardCards={boardCards} />;
+    return <PokerHandEvaluator playerHand={playerHand} boardCards={boardCards} mode="low" />;
   }}
 />
