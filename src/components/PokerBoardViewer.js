@@ -97,7 +97,8 @@ const PokerBoardViewer = ({
   dealDelayMs = DEFAULT_DEAL_DELAY,
   playerHandCards = null, // array of card codes for the player hand, or null for random
   playerHandSize = 2, // number of cards in the player hand (default 2)
-  dealPlayerHand = false // NEW: only deal player hand if true
+  dealPlayerHand = false, // only deal player hand if true
+  renderExtra = null // NEW: render prop for extra content
 }) => {
   const resolvedConfigPath = useBaseUrl(configPath);
   
@@ -505,8 +506,12 @@ const PokerBoardViewer = ({
   return (
     <div className="poker-board-viewer">
       <h3>{config.name}</h3>
+      {/* ...existing code for blinds and boards... */}
       {renderBoard()}
+      {/* Player hand below the board */}
       {renderPlayerHand()}
+      {/* Render extra content if provided (e.g., PokerHandEvaluator) */}
+      {renderExtra && renderExtra({ playerHand, boardState })}
       <div className="controls">
         <button
           onClick={dealNextStreet}

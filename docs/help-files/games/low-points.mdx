@@ -5,6 +5,7 @@ sidebar_position: 6
 ---
 
 import PokerBoardViewer from "@site/src/components/PokerBoardViewer";
+import PokerHandEvaluator from "@site/src/components/PokerHandEvaluator";
 
 There are a number of ways in which the best low hand can be determined:
 
@@ -27,10 +28,15 @@ There are a number of ways in which the best low hand can be determined:
   more than one player has the same number of suits with the lowest
   hand, the point is chopped between them.
 
-<PokerBoardViewer 
-  configPath="/data/boards/single-board.json" 
-  predefinedCards={[["AS", "2C", "9H"],["QC"],["7D"]]} 
-  playerHandSize={4} 
+<PokerBoardViewer
+  configPath="/data/boards/single-board.json"
+  predefinedCards={[["AS", "2C", "9H"],["QC"],["7D"]]}
+  playerHandSize={4}
   dealPlayerHand={true}
-  playerHandCards={["3C", "4S", "JD", "JC"]}
+  renderExtra={({ playerHand, boardState }) => {
+    const boardCards = boardState
+      ? boardState.flat().filter(cell => cell && cell.card).map(cell => cell.card)
+      : [];
+    return <PokerHandEvaluator playerHand={playerHand} boardCards={boardCards} />;
+  }}
 />

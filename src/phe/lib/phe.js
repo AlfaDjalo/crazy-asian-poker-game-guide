@@ -1,14 +1,14 @@
 'use strict'
 
-const { handRank, rankDescription, STRAIGHT_FLUSH, FOUR_OF_A_KIND, FULL_HOUSE, FLUSH, STRAIGHT, THREE_OF_A_KIND, TWO_PAIR, ONE_PAIR, HIGH_CARD } = require('./lib/hand-rank.js');
+const { handRank, rankDescription, STRAIGHT_FLUSH, FOUR_OF_A_KIND, FULL_HOUSE, FLUSH, STRAIGHT, THREE_OF_A_KIND, TWO_PAIR, ONE_PAIR, HIGH_CARD } = require('./hand-rank.js');
 
-const { cardCode, cardCodes, boardCodes, rankCodes, suitCodes, stringifyCardCode, stringifyRank, stringifySuit } = require('./lib/hand-code.js');
+const { cardCode, cardCodes, boardCodes, rankCodes, suitCodes, stringifyCardCode, stringifyRank, stringifySuit } = require('./hand-code.js');
 
-const evaluate_5_cards = require('./lib/evaluator5.js');
-const evaluate_6_cards = require('./lib/evaluator6.js');
-const evaluate_7_cards = require('./lib/evaluator7.js');
+const evaluate_5_cards = require('./evaluator5.js');
+const evaluate_6_cards = require('./evaluator6.js');
+const evaluate_7_cards = require('./evaluator7.js');
 
-const { lowhand5 } = require('./lib/lowtable.js');
+const { lowhand5 } = require('./lowtable.js');
 
 /**
  * Evaluates the 5 - 7 card codes to arrive at a number representing the hand
