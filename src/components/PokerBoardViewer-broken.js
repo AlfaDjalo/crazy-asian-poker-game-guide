@@ -1,4 +1,5 @@
-// Add missing imports and fix the auto-selection logic
+// ...existing code...
+
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import useBaseUrl from '@docusaurus/useBaseUrl';
 import PokerCard from './PokerCard';
@@ -15,40 +16,18 @@ const OFFSET_NONE = 0;
 const OFFSET_UP = 1;
 const OFFSET_RIGHT = 2;
 
+/**
+ * Main poker board viewer component with 5x10 grid layout
+ */
 const PokerBoardViewer = ({ 
   configPath = "/data/boards/double-board.json", 
   predefinedCards = null, 
   dealDelayMs = DEFAULT_DEAL_DELAY,
-  playerHandCards = null,
-  playerHandSize = 2,
-  dealPlayerHand = false,
-  renderExtra = null
+  playerHandCards = null, // array of card codes for the player hand, or null for random
+  playerHandSize = 2, // number of cards in the player hand (default 2)
+  dealPlayerHand = false, // only deal player hand if true
+  renderExtra = null // NEW: render prop for extra content
 }) => {
-  const resolvedConfigPath = useBaseUrl(configPath);
-  
-  // State management
-  const [config, setConfig] = useState(null);
-  const [deck, setDeck] = useState([]);
-  const [step, setStep] = useState(0);
-  const [dealtCount, setDealtCount] = useState(0);
-  const [isDealing, setIsDealing] = useState(false);
-  const [error, setError] = useState(null);
-  const [selectedCards, setSelectedCards] = useState(new Set());
-  
-  // Board state: 5x10 grid where each cell can contain a card object
-  const [boardState, setBoardState] = useState(() => 
-    Array(BOARD_ROWS).fill(null).map(() => Array(BOARD_COLS).fill(null))
-  );
-  
-  // Player hand state
-  const [playerHand, setPlayerHand] = useState(Array(playerHandSize).fill(null));
-  const [playerHandDealt, setPlayerHandDealt] = useState(dealPlayerHand ? 0 : playerHandSize);
-  const [isDealingPlayerHand, setIsDealingPlayerHand] = useState(false);
-  const [playerHandInitialized, setPlayerHandInitialized] = useState(false);
-  
-  // Player hand selection state
-  const [selectedPlayerHand, setSelectedPlayerHand] = useState([]);
-  
   // Track selected indices for auto-selection of best hand
   const [autoSelectedPlayerHand, setAutoSelectedPlayerHand] = useState([]);
   const [autoSelectedBoardCards, setAutoSelectedBoardCards] = useState([]);
@@ -68,7 +47,7 @@ const PokerBoardViewer = ({
   };
 
   // Helper to get the flat index of a board card for auto-selection
-  const flatBoardCardsIndex = useCallback((row, col) => {
+  function flatBoardCardsIndex(row, col) {
     let idx = 0;
     for (let r = 0; r < BOARD_ROWS; r++) {
       for (let c = 0; c < BOARD_COLS; c++) {
@@ -79,13 +58,12 @@ const PokerBoardViewer = ({
       }
     }
     return -1;
-  }, [boardState]);
+  }
 
   // Auto-select best hand when all board cards are dealt
   useEffect(() => {
     if (!dealPlayerHand || !playerHand || !playerHand.filter(Boolean).length) return;
     if (!config || !config.boardCardSchedule) return;
-    
     // All board cards dealt?
     const totalBoardCards = config.boardCardSchedule.flat().length;
     const flatBoardCards = getFlatBoardCards();
@@ -94,12 +72,10 @@ const PokerBoardViewer = ({
       setAutoSelectedBoardCards([]);
       return;
     }
-    
     // Evaluate best hand using PokerHandEvaluator logic
     try {
-      // Import evaluation functions (Note: This should be moved to top of file in real implementation)
-      const { evaluateCards } = require('../phe/lib/phe.js');
-      
+      // Import evaluation functions
+      const { evaluateCards, evaluateLowHandRank, cardCodesToRanks } = require('../phe/lib/phe.js');
       // Normalize player hand and board cards
       const normalizeCard = (card) => {
         if (!card || typeof card !== 'string') return null;
@@ -109,10 +85,8 @@ const PokerBoardViewer = ({
         if (rank === '0') rank = 'T';
         return rank + suit;
       };
-      
       const validPlayerHand = playerHand.filter(Boolean).map(normalizeCard);
       const validBoardCards = flatBoardCards.map(obj => normalizeCard(obj.card));
-      
       // Generate all 2+3 combos
       function k_combinations(arr, k) {
         const results = [];
@@ -130,20 +104,16 @@ const PokerBoardViewer = ({
         comb([], 0);
         return results;
       }
-      
       const handCombos = k_combinations(validPlayerHand, 2);
       const boardCombos = k_combinations(validBoardCards, 3);
-      
       let best = null;
-      
+      let bestIndices = null;
       for (let hi = 0; hi < handCombos.length; hi++) {
         for (let bi = 0; bi < boardCombos.length; bi++) {
           const combo = [...handCombos[hi], ...boardCombos[bi]];
           if (combo.length !== 5 || combo.some(card => !card)) continue;
-          
           let value = evaluateCards(combo);
           if (!value || value === 0 || typeof value !== 'number') continue;
-          
           if (!best || value < best.value) {
             // Find indices in playerHand and board
             const playerIdxs = handCombos[hi].map(card => validPlayerHand.findIndex(c => c === card));
@@ -152,7 +122,6 @@ const PokerBoardViewer = ({
           }
         }
       }
-      
       if (best) {
         setAutoSelectedPlayerHand(best.playerIdxs);
         setAutoSelectedBoardCards(best.boardIdxs);
@@ -161,13 +130,138 @@ const PokerBoardViewer = ({
         setAutoSelectedBoardCards([]);
       }
     } catch (e) {
-      console.error('Error in auto-selection:', e);
       setAutoSelectedPlayerHand([]);
       setAutoSelectedBoardCards([]);
     }
   }, [dealPlayerHand, playerHand, boardState, config]);
 
+  // ...existing code...
+import React, { useEffect, useState, useCallback, useMemo } from "react";
+import useBaseUrl from '@docusaurus/useBaseUrl';
+import PokerCard from './PokerCard';
+import { generateDeck, isValidCard } from './deckUtils';
+import "../css/poker-board-viewer.css";
+
+// Constants
+const BOARD_ROWS = 5;
+const BOARD_COLS = 10;
+const DEFAULT_DEAL_DELAY = 1000;
+
+// Offset types
+const OFFSET_NONE = 0;
+const OFFSET_UP = 1;
+const OFFSET_RIGHT = 2;
+
+/**
+ * Parse position string (xyz format) into row, col, and offset
+ * @param {string} positionStr - Position in xyz format (e.g., "341")
+ * @returns {Object} { row, col, offset }
+ */
+const parsePosition = (positionStr) => {
+  const str = positionStr.toString();
+  if (str.length !== 3) {
+    console.error(`Invalid position format: ${positionStr}. Expected xyz format.`);
+    return null;
+  }
+  
+  const row = parseInt(str[0], 10);
+  const col = parseInt(str[1], 10);
+  const offset = parseInt(str[2], 10);
+  
+  if (row >= BOARD_ROWS || col >= BOARD_COLS || ![0, 1, 2].includes(offset)) {
+    console.error(`Invalid position values: row=${row}, col=${col}, offset=${offset}`);
+    return null;
+  }
+  
+  return { row, col, offset };
+};
+
+/**
+ * Get the display position for a card based on its offset
+ * @param {number} row - Original row
+ * @param {number} col - Original column  
+ * @param {number} offset - Offset type (0=none, 1=up, 2=right)
+ * @returns {Object} { displayRow, displayCol }
+ */
+const getDisplayPosition = (row, col, offset) => {
+  // Keep cards in their original positions regardless of offset
+  return { displayRow: row, displayCol: col };
+};
+
+/**
+ * Calculate centering offsets for dealt cards
+ * @param {Array} positions - Array of position strings
+ * @returns {Object} { rowOffset, colOffset }
+ */
+const calculateCenteringOffsets = (positions) => {
+  if (!positions || positions.length === 0) {
+    return { rowOffset: 0, colOffset: 0 };
+  }
+
+  let minRow = BOARD_ROWS;
+  let maxRow = -1;
+  let minCol = BOARD_COLS;
+  let maxCol = -1;
+
+  // Find the bounding box of all dealt cards
+  positions.forEach(positionStr => {
+    const position = parsePosition(positionStr);
+    if (position) {
+      const { displayRow, displayCol } = getDisplayPosition(position.row, position.col, position.offset);
+      minRow = Math.min(minRow, displayRow);
+      maxRow = Math.max(maxRow, displayRow);
+      minCol = Math.min(minCol, displayCol);
+      maxCol = Math.max(maxCol, displayCol);
+    }
+  });
+
+  // Calculate the size of the bounding box
+  const usedRows = maxRow - minRow + 1;
+  const usedCols = maxCol - minCol + 1;
+
+  // Calculate offsets to center the cards
+  const rowOffset = Math.floor((BOARD_ROWS - usedRows) / 2) - minRow;
+  const colOffset = Math.floor((BOARD_COLS - usedCols) / 2) - minCol;
+
+  return { rowOffset, colOffset };
+};
+
+/**
+ * Main poker board viewer component with 5x10 grid layout
+ */
+const PokerBoardViewer = ({ 
+  configPath = "/data/boards/double-board.json", 
+  predefinedCards = null, 
+  dealDelayMs = DEFAULT_DEAL_DELAY,
+  playerHandCards = null, // array of card codes for the player hand, or null for random
+  playerHandSize = 2, // number of cards in the player hand (default 2)
+  dealPlayerHand = false, // only deal player hand if true
+  renderExtra = null // NEW: render prop for extra content
+}) => {
+  const resolvedConfigPath = useBaseUrl(configPath);
+  
+  // State management
+  const [config, setConfig] = useState(null);
+  const [deck, setDeck] = useState([]);
+  const [step, setStep] = useState(0);
+  const [dealtCount, setDealtCount] = useState(0);
+  const [isDealing, setIsDealing] = useState(false);
+  const [error, setError] = useState(null);
+  const [selectedCards, setSelectedCards] = useState(new Set());
+  
+  // Board state: 5x10 grid where each cell can contain a card object
+  const [boardState, setBoardState] = useState(() => 
+    Array(BOARD_ROWS).fill(null).map(() => Array(BOARD_COLS).fill(null))
+  );
+  
+  // Player hand state - FIXED: Store the actual player hand cards persistently
+  const [playerHand, setPlayerHand] = useState(Array(playerHandSize).fill(null));
+  const [playerHandDealt, setPlayerHandDealt] = useState(dealPlayerHand ? 0 : playerHandSize);
+  const [isDealingPlayerHand, setIsDealingPlayerHand] = useState(false);
+  const [playerHandInitialized, setPlayerHandInitialized] = useState(false);
+  
   // Generate initial player hand cards and store them persistently
+  // Also returns the remaining deck with player hand cards removed
   const generateInitialPlayerHandAndDeck = useCallback(() => {
     let hand = [];
     let deckCopy = [...deck];
@@ -198,66 +292,11 @@ const PokerBoardViewer = ({
     return { hand, deckWithoutHand: deckCopy };
   }, [playerHandCards, playerHandSize, deck]);
 
-  // Parse position string (xyz format) into row, col, and offset
-  const parsePosition = (positionStr) => {
-    const str = positionStr.toString();
-    if (str.length !== 3) {
-      console.error(`Invalid position format: ${positionStr}. Expected xyz format.`);
-      return null;
-    }
-    
-    const row = parseInt(str[0], 10);
-    const col = parseInt(str[1], 10);
-    const offset = parseInt(str[2], 10);
-    
-    if (row >= BOARD_ROWS || col >= BOARD_COLS || ![0, 1, 2].includes(offset)) {
-      console.error(`Invalid position values: row=${row}, col=${col}, offset=${offset}`);
-      return null;
-    }
-    
-    return { row, col, offset };
-  };
-
-  // Get the display position for a card based on its offset
-  const getDisplayPosition = (row, col, offset) => {
-    return { displayRow: row, displayCol: col };
-  };
-
-  // Calculate centering offsets for dealt cards
-  const calculateCenteringOffsets = (positions) => {
-    if (!positions || positions.length === 0) {
-      return { rowOffset: 0, colOffset: 0 };
-    }
-
-    let minRow = BOARD_ROWS;
-    let maxRow = -1;
-    let minCol = BOARD_COLS;
-    let maxCol = -1;
-
-    positions.forEach(positionStr => {
-      const position = parsePosition(positionStr);
-      if (position) {
-        const { displayRow, displayCol } = getDisplayPosition(position.row, position.col, position.offset);
-        minRow = Math.min(minRow, displayRow);
-        maxRow = Math.max(maxRow, displayRow);
-        minCol = Math.min(minCol, displayCol);
-        maxCol = Math.max(maxCol, displayCol);
-      }
-    });
-
-    const usedRows = maxRow - minRow + 1;
-    const usedCols = maxCol - minCol + 1;
-
-    const rowOffset = Math.floor((BOARD_ROWS - usedRows) / 2) - minRow;
-    const colOffset = Math.floor((BOARD_COLS - usedCols) / 2) - minCol;
-
-    return { rowOffset, colOffset };
-  };
-
   // Flatten predefined cards if they're in nested array format
   const flattenedPredefinedCards = useMemo(() => {
     if (!predefinedCards) return null;
     
+    // Check if it's a nested array structure
     if (Array.isArray(predefinedCards) && predefinedCards.length > 0 && Array.isArray(predefinedCards[0])) {
       return predefinedCards.flat();
     }
@@ -272,11 +311,13 @@ const PokerBoardViewer = ({
     setIsDealing(false);
     setSelectedCards(new Set());
     setBoardState(Array(BOARD_ROWS).fill(null).map(() => Array(BOARD_COLS).fill(null)));
+    // Don't reset player hand state here - handle it separately
   }, []);
 
   // Validate predefined cards format
   const validatePredefinedCards = (cards) => {
     if (!Array.isArray(cards)) return false;
+    
     return cards.every(card => card === null || isValidCard(card));
   };
 
@@ -293,10 +334,11 @@ const PokerBoardViewer = ({
     return allPositions;
   }, [config]);
 
-  // Calculate centering offsets based on ALL cards that will be dealt
+  // Calculate centering offsets based on ALL cards that will be dealt (final layout)
   const centeringOffsets = useMemo(() => {
     if (!config?.boardCardSchedule) return { rowOffset: 0, colOffset: 0 };
     
+    // Get all positions from all steps to calculate centering based on final layout
     const allPositions = config.boardCardSchedule.flat();
     return calculateCenteringOffsets(allPositions);
   }, [config]);
@@ -316,10 +358,12 @@ const PokerBoardViewer = ({
         console.log("Config loaded:", data);
         setConfig(data);
         
+        // Initialize deck
         const newDeck = generateDeck();
         setDeck(newDeck);
         console.log("Generated random deck:", newDeck);
         
+        // Reset state
         resetGameState();
       })
       .catch((err) => {
@@ -390,9 +434,11 @@ const PokerBoardViewer = ({
     const { row, col, offset } = position;
     const { displayRow, displayCol } = getDisplayPosition(row, col, offset);
     
+    // Apply centering offsets
     const centeredRow = Math.max(0, Math.min(BOARD_ROWS - 1, displayRow + offsets.rowOffset));
     const centeredCol = Math.max(0, Math.min(BOARD_COLS - 1, displayCol + offsets.colOffset));
     
+    // Get card to deal
     let cardToDeal = null;
     if (flattenedPredefinedCards && cardIndex < flattenedPredefinedCards.length) {
       cardToDeal = flattenedPredefinedCards[cardIndex];
@@ -402,6 +448,7 @@ const PokerBoardViewer = ({
     
     console.log(`Dealing card ${cardToDeal} to position ${positionStr} (${row},${col}) -> display (${displayRow},${displayCol}) -> centered (${centeredRow},${centeredCol})`);
     
+    // Create card object with position info
     const cardObj = {
       card: cardToDeal,
       originalRow: row,
@@ -426,7 +473,7 @@ const PokerBoardViewer = ({
     
     console.log(`Card clicked: ${cardObj.card} at (${cardObj.originalRow},${cardObj.originalCol}), currently selected: ${cardObj.isSelected}`);
 
-    const { originalRow, originalCol } = cardObj;
+    const { originalRow, originalCol, offset } = cardObj;
     const cardKey = `${originalRow}-${originalCol}`;
     
     setSelectedCards(prev => {
@@ -440,10 +487,13 @@ const PokerBoardViewer = ({
       return newSelected;
     });
     
+    // Update board state to reflect selection
     setBoardState(prevBoard => {
       const newBoard = prevBoard.map(row => [...row]);
-      const isSelected = !cardObj.isSelected;
+      const cardKey = `${originalRow}-${originalCol}`;
+      const isSelected = !cardObj.isSelected; // Toggle based on current state
       
+      // Find and update the card in place
       for (let r = 0; r < BOARD_ROWS; r++) {
         for (let c = 0; c < BOARD_COLS; c++) {
           const cell = newBoard[r][c];
@@ -474,22 +524,23 @@ const PokerBoardViewer = ({
     setDealtCount(currentPositions.length);
   };
 
-  // Reset hand
+  // Reset hand (generate new random cards and update deck)
   const resetHand = () => {
     console.log("Reset hand called");
+    // Reset board state
     resetGameState();
-    
+    // Generate new deck if not using predefined cards
     if (!flattenedPredefinedCards) {
+      // Always start with a fresh, shuffled deck
       let newDeck = generateDeck();
       newDeck = [...newDeck].sort(() => Math.random() - 0.5);
+      // Generate new player hand and remove those cards from the deck
       let newPlayerHand = Array(playerHandSize).fill(null);
       let deckWithoutHand = [...newDeck];
-      
       if (dealPlayerHand) {
         setPlayerHandInitialized(false);
         setPlayerHandDealt(0);
         setIsDealingPlayerHand(false);
-        
         const result = (() => {
           let hand = [];
           let deckCopy = [...newDeck];
@@ -514,7 +565,6 @@ const PokerBoardViewer = ({
           }
           return { hand, deckWithoutHand: deckCopy };
         })();
-        
         newPlayerHand = result.hand;
         deckWithoutHand = result.deckWithoutHand;
         setPlayerHand(newPlayerHand);
@@ -522,10 +572,11 @@ const PokerBoardViewer = ({
         console.log("New player hand generated:", newPlayerHand);
         console.log("Deck after removing player hand:", deckWithoutHand);
       }
-      
+      // Set the deck for board dealing (after removing player hand)
       setDeck(deckWithoutHand);
       console.log("Deck for board dealing:", deckWithoutHand);
     } else {
+      // If using predefined cards, just reset player hand state
       if (dealPlayerHand) {
         setPlayerHandInitialized(false);
         setPlayerHandDealt(0);
@@ -539,6 +590,9 @@ const PokerBoardViewer = ({
       }
     }
   };
+
+  // Player hand selection state
+  const [selectedPlayerHand, setSelectedPlayerHand] = useState([]);
 
   // Deselect all player hand cards on hand reset
   useEffect(() => {
@@ -601,6 +655,8 @@ const PokerBoardViewer = ({
             {Array(BOARD_COLS).fill(null).map((_, colIndex) => {
               const cardObj = boardState[rowIndex][colIndex];
               
+              // Check if there should be a board name at this centered position
+              // We need to reverse the centering to find the original position
               const originalRow = rowIndex - centeringOffsets.rowOffset;
               const originalCol = colIndex - centeringOffsets.colOffset;
               const cellKey = `${originalRow}${originalCol}`;
@@ -611,14 +667,14 @@ const PokerBoardViewer = ({
                   {boardName && (
                     <div className="board-name">{boardName}</div>
                   )}
-                  {cardObj && (
-                    <div 
-                      className={`card-container ${cardObj.isSelected ? 'selected' : ''} ${autoSelectedBoardCards.includes(flatBoardCardsIndex(rowIndex, colIndex)) ? 'selected' : ''} ${cardObj.offset === OFFSET_UP ? 'offset-up' : ''} ${cardObj.offset === OFFSET_RIGHT ? 'offset-right' : ''}`}
-                      onClick={() => handleCardClick(cardObj)}
-                    >
-                      <PokerCard card={cardObj.card} />
-                    </div>
-                  )}
+              {cardObj && (
+                <div 
+                  className={`card-container ${cardObj.isSelected ? 'selected' : ''} ${autoSelectedBoardCards.includes(flatBoardCardsIndex(rowIndex, colIndex)) ? 'selected' : ''} ${cardObj.offset === OFFSET_UP ? 'offset-up' : ''} ${cardObj.offset === OFFSET_RIGHT ? 'offset-right' : ''}`}
+                  onClick={() => handleCardClick(cardObj)}
+                >
+                  <PokerCard card={cardObj.card} />
+                </div>
+              )}
                 </div>
               );
             })}
@@ -631,13 +687,14 @@ const PokerBoardViewer = ({
   // Auto-deal preflop cards and player hand
   useEffect(() => {
     if (!config) return;
-    if (step !== 0) return;
-    if (isDealing) return;
-    if (dealtCount > 0) return;
+    if (step !== 0) return; // Only auto-deal on step 0
+    if (isDealing) return; // Don't start if already dealing
+    if (dealtCount > 0) return; // Don't start if cards already dealt
     
     const hasPreflop = config.boardCardSchedule?.length > 0 && config.boardCardSchedule[0].length > 0;
     const shouldDealPlayerHand = dealPlayerHand && playerHandInitialized && playerHandDealt === 0;
     
+    // Start dealing if there are preflop cards OR if we need to deal player hand
     if (hasPreflop || shouldDealPlayerHand) {
       console.log("Auto-starting deal - hasPreflop:", hasPreflop, "shouldDealPlayerHand:", shouldDealPlayerHand);
       
@@ -662,8 +719,11 @@ const PokerBoardViewer = ({
   return (
     <div className="poker-board-viewer">
       <h3>{config.name}</h3>
+      {/* ...existing code for blinds and boards... */}
       {renderBoard()}
+      {/* Player hand below the board */}
       {renderPlayerHand()}
+      {/* Render extra content if provided (e.g., PokerHandEvaluator) */}
       {renderExtra && renderExtra({ playerHand, boardState })}
       <div className="controls">
         <button
