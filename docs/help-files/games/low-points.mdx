@@ -30,10 +30,10 @@ There are a number of ways in which the best low hand can be determined:
 
 <PokerBoardViewer
   configPath="/data/boards/single-board.json"
-  predefinedCards={[["AS", "2C", "9H"],["QC"],["7D"]]}
+  predefinedCards={[["AS", "2C", "9H"],["5C"],["7D"]]}
   playerHandSize={4}
   dealPlayerHand={true}
-  playerHandCards={["3C", "4S", "JH", "JC"]}
+  playerHandCards={["AC", "3S", "8H", "JC"]}
   renderExtra={({ playerHand, boardState }) => {
     const boardCards = boardState
       ? boardState.flat().filter(cell => cell && cell.card).map(cell => cell.card)

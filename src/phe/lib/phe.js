@@ -1,3 +1,21 @@
+/**
+ * Converts an array of card codes to rank numbers for low hand evaluation.
+ * e.g. ['AS', '2C', '3D', '4H', '5S'] => [14,2,3,4,5]
+ * @param {Array<string>} cards
+ * @returns {Array<number|null>}
+ */
+function cardCodesToRanks(cards) {
+  return cards.map(card => {
+    if (!card) return null;
+    let rank = card[0].toUpperCase();
+    if (rank === 'T' || rank === '0') return 10;
+    if (rank === 'J') return 11;
+    if (rank === 'Q') return 12;
+    if (rank === 'K') return 13;
+    if (rank === 'A') return 14;
+    return parseInt(rank, 10);
+  });
+}
 'use strict'
 
 const { handRank, rankDescription, STRAIGHT_FLUSH, FOUR_OF_A_KIND, FULL_HOUSE, FLUSH, STRAIGHT, THREE_OF_A_KIND, TWO_PAIR, ONE_PAIR, HIGH_CARD } = require('./hand-rank.js');
@@ -262,6 +280,7 @@ module.exports = {
   , rankCardsFast
   , rankCardCodes
   , rankBoard
+  , cardCodesToRanks
 
   // hand rank
   , handRank

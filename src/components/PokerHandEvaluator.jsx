@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { evaluateCards, evaluateLowHandRank } from '../phe/lib/phe.js';
-import { cardCodesToRanks } from './evaluateLowHand.js';
+
+import { evaluateCards, evaluateLowHandRank, cardCodesToRanks } from '../phe/lib/phe.js';
 
 // Helper to get all k-combinations of an array
 function k_combinations(arr, k) {
@@ -21,76 +21,185 @@ function k_combinations(arr, k) {
 }
 
 /**
+ * Normalize card code to consistent format: 'RankSuit' (Rank uppercase, Suit lowercase)
+ * e.g. 'as' -> 'As', '0h' -> 'Th', 'jh' -> 'Jh', 'QS' -> 'Qs'
+ * @param {string} card - Card code like "AS", "0H", "th", "jh"
+ * @returns {string} Normalized card code
+ */
+const normalizeCard = (card) => {
+  if (!card || typeof card !== 'string') return null;
+  let c = card.trim();
+  let rank = c[0].toUpperCase();
+  let suit = c[1] ? c[1].toLowerCase() : '';
+  if (rank === '0') rank = 'T';
+  return rank + suit;
+};
+
+/**
+ * Check if two cards are the same after normalization
+ * @param {string} card1 
+ * @param {string} card2 
+ * @returns {boolean}
+ */
+const cardsEqual = (card1, card2) => {
+  const norm1 = normalizeCard(card1);
+  const norm2 = normalizeCard(card2);
+  return norm1 && norm2 && norm1 === norm2;
+};
+
+/**
  * PokerHandEvaluator
  * @param {Array<string>} playerHand - Array of player hand card codes (e.g., ["AS", "KH"])
  * @param {Array<string>} boardCards - Array of board card codes (e.g., ["2C", "3D", "4S", ...])
  * @returns JSX with best hand and all evaluated hands
  */
-const PokerHandEvaluator = ({ playerHand, boardCards, onReset, isShowdown, mode = 'high' }) => {
+const PokerHandEvaluator = ({ 
+  playerHand, 
+  boardCards, 
+  onReset, 
+  isShowdown, 
+  mode = 'high',
+  onCardSelection = null // Callback to notify parent of selected cards
+}) => {
   // Selection state for player and board cards
   const [selectedPlayer, setSelectedPlayer] = useState([]); // indices of selected player cards
   const [selectedBoard, setSelectedBoard] = useState([]);   // indices of selected board cards
 
+  // Filter out null/undefined cards and normalize
+  const validPlayerHand = useMemo(() => {
+    if (!playerHand || !Array.isArray(playerHand)) return [];
+    return playerHand
+      .map(normalizeCard)
+      .filter(card => card !== null);
+  }, [playerHand]);
+
+  const validBoardCards = useMemo(() => {
+    if (!boardCards || !Array.isArray(boardCards)) return [];
+    return boardCards
+      .map(normalizeCard)
+      .filter(card => card !== null);
+  }, [boardCards]);
+
   // Compute all 2-card combos from hand and 3-card combos from board
   const allHands = useMemo(() => {
-    if (!playerHand || !boardCards || playerHand.length < 2 || boardCards.length < 3) return [];
-    const handCombos = k_combinations(playerHand, 2);
-    const boardCombos = k_combinations(boardCards, 3);
+    if (validPlayerHand.length < 2 || validBoardCards.length < 3) return [];
+
+    const handCombos = k_combinations(validPlayerHand, 2);
+    const boardCombos = k_combinations(validBoardCards, 3);
     const hands = [];
+
     for (let hi = 0; hi < handCombos.length; hi++) {
       for (let bi = 0; bi < boardCombos.length; bi++) {
-        const h = handCombos[hi];
-        const b = boardCombos[bi];
-        // Normalize card codes
-        const combo = [...h, ...b].map(card => {
-          if (!card) return card;
-          let c = card.toUpperCase();
-          if (c[0] === '0') c = 'T' + c[1];
-          return c;
-        });
+        const handCards = handCombos[hi];
+        const boardCardsCombo = boardCombos[bi];
+        // Normalize all cards to 'RankSuit' (Rank uppercase, Suit lowercase)
+        const combo = [...handCards, ...boardCardsCombo].map(normalizeCard);
+
+        // Double-check all cards are valid
+        if (combo.length !== 5 || combo.some(card => !card)) {
+          continue;
+        }
+
         let value;
         try {
           if (mode === 'low') {
-            // Convert to rank numbers for low hand evaluation
             const ranks = cardCodesToRanks(combo);
-            value = evaluateLowHandRank(ranks);
+            if (ranks.some(rank => rank === null || isNaN(rank))) {
+              value = 99; // Invalid low hand
+            } else {
+              value = evaluateLowHandRank(ranks);
+            }
           } else {
             value = evaluateCards(combo);
+            // Debug: log hands that evaluate as 0 or invalid
+            if (!value || value === 0 || typeof value !== 'number') {
+              console.warn('[DEBUG] High hand evaluated as zero/invalid:', {
+                combo,
+                evalResult: value
+              });
+              value = 'Invalid';
+            }
           }
         } catch (e) {
+          console.error('Error evaluating hand:', combo, e);
           value = 'Invalid';
         }
-        hands.push({ cards: combo, value, handIdx: hi, boardIdx: bi });
+
+        hands.push({ 
+          cards: combo, 
+          value, 
+          handIdx: hi, 
+          boardIdx: bi,
+          handCards: handCards.map(normalizeCard),
+          boardCardsUsed: boardCardsCombo.map(normalizeCard)
+        });
       }
     }
     return hands;
-  }, [playerHand, boardCards, mode]);
+  }, [validPlayerHand, validBoardCards, mode]);
 
-  // Find the best hand (lowest value)
+  // Find the best hand (lowest value for both high and low)
   const bestHand = useMemo(() => {
     if (!allHands.length) return null;
-    return allHands.reduce((best, h) => (best === null || (typeof h.value === 'number' && h.value < best.value)) ? h : best, null);
-  }, [allHands]);
+    
+    const validHands = allHands.filter(h => 
+      typeof h.value === 'number' && h.value > 0 && h.value !== 99
+    );
+    
+    if (validHands.length === 0) return null;
+    
+    return validHands.reduce((best, current) => {
+      if (mode === 'low') {
+        // For low hands, lower value is better, but 99 means no qualifying low
+        return (current.value < best.value) ? current : best;
+      } else {
+        // For high hands, lower value is better (in most poker evaluators)
+        return (current.value < best.value) ? current : best;
+      }
+    }, validHands[0]);
+  }, [allHands, mode]);
 
   // Auto-select best hand at showdown
   useEffect(() => {
     if (isShowdown && bestHand) {
-      // Find indices of best hand cards in playerHand and boardCards
-      const playerIdxs = [];
-      const boardIdxs = [];
-      bestHand.cards.forEach(card => {
-        const pIdx = playerHand.findIndex((c, i) => c && card && c.toUpperCase().replace(/^0/, 'T') === card && !playerIdxs.includes(i));
-        if (pIdx !== -1) {
-          playerIdxs.push(pIdx);
-        } else {
-          const bIdx = boardCards.findIndex((c, i) => c && card && c.toUpperCase().replace(/^0/, 'T') === card && !boardIdxs.includes(i));
-          if (bIdx !== -1) boardIdxs.push(bIdx);
+      const playerIndices = [];
+      const boardIndices = [];
+      
+      // Find indices of hand cards in player hand
+      bestHand.handCards.forEach(card => {
+        const index = validPlayerHand.findIndex((playerCard, i) => 
+          cardsEqual(playerCard, card) && !playerIndices.includes(i)
+        );
+        if (index !== -1) {
+          playerIndices.push(index);
         }
       });
-      setSelectedPlayer(playerIdxs);
-      setSelectedBoard(boardIdxs);
+      
+      // Find indices of board cards used
+      bestHand.boardCardsUsed.forEach(card => {
+        const index = validBoardCards.findIndex((boardCard, i) => 
+          cardsEqual(boardCard, card) && !boardIndices.includes(i)
+        );
+        if (index !== -1) {
+          boardIndices.push(index);
+        }
+      });
+      
+      setSelectedPlayer(playerIndices);
+      setSelectedBoard(boardIndices);
+      
+      // Notify parent component if callback provided
+      if (onCardSelection) {
+        onCardSelection({
+          playerIndices,
+          boardIndices,
+          bestHand: bestHand
+        });
+      }
+      
+      console.log('Auto-selected cards:', { playerIndices, boardIndices, bestHand });
     }
-  }, [isShowdown, bestHand, playerHand, boardCards]);
+  }, [isShowdown, bestHand, validPlayerHand, validBoardCards, onCardSelection]);
 
   // Deselect all on reset
   useEffect(() => {
@@ -101,11 +210,27 @@ const PokerHandEvaluator = ({ playerHand, boardCards, onReset, isShowdown, mode 
   }, [onReset]);
 
   // Handlers for manual selection
-  const togglePlayerCard = idx => {
-    setSelectedPlayer(sel => sel.includes(idx) ? sel.filter(i => i !== idx) : [...sel, idx]);
+  const togglePlayerCard = (idx) => {
+    setSelectedPlayer(sel => 
+      sel.includes(idx) ? sel.filter(i => i !== idx) : [...sel, idx]
+    );
   };
-  const toggleBoardCard = idx => {
-    setSelectedBoard(sel => sel.includes(idx) ? sel.filter(i => i !== idx) : [...sel, idx]);
+  
+  const toggleBoardCard = (idx) => {
+    setSelectedBoard(sel => 
+      sel.includes(idx) ? sel.filter(i => i !== idx) : [...sel, idx]
+    );
+  };
+
+  // Get description of hand strength
+  const getHandDescription = (hand) => {
+    if (!hand || hand.value === 'Invalid') return 'Invalid hand';
+    if (mode === 'low') {
+      if (hand.value === 99) return 'No qualifying low';
+      return `Low hand rank: ${hand.value}`;
+    } else {
+      return `High hand value: ${hand.value}`;
+    }
   };
 
   return (
@@ -114,14 +239,18 @@ const PokerHandEvaluator = ({ playerHand, boardCards, onReset, isShowdown, mode 
       {bestHand ? (
         <div>
           <b>Cards:</b> {bestHand.cards.join(" ")}<br />
-          <b>Value:</b> {bestHand.value}
+          <b>Value:</b> {bestHand.value}<br />
+          <b>Description:</b> {getHandDescription(bestHand)}<br />
+          <b>Hand cards used:</b> {bestHand.handCards.join(" ")}<br />
+          <b>Board cards used:</b> {bestHand.boardCardsUsed.join(" ")}
         </div>
       ) : (
-        <div>No valid 5-card hand.</div>
+        <div>No valid 5-card hand found.</div>
       )}
+      
       <div style={{ marginTop: 10 }}>
         <b>Player Hand:</b>
-        {playerHand.map((card, idx) => (
+        {validPlayerHand.map((card, idx) => (
           <span
             key={idx}
             onClick={() => togglePlayerCard(idx)}
@@ -134,12 +263,15 @@ const PokerHandEvaluator = ({ playerHand, boardCards, onReset, isShowdown, mode 
               background: selectedPlayer.includes(idx) ? '#d1e7dd' : 'transparent',
               fontWeight: selectedPlayer.includes(idx) ? 'bold' : 'normal',
             }}
-          >{card}</span>
+          >
+            {card}
+          </span>
         ))}
       </div>
+      
       <div style={{ marginTop: 10 }}>
         <b>Board Cards:</b>
-        {boardCards.map((card, idx) => (
+        {validBoardCards.map((card, idx) => (
           <span
             key={idx}
             onClick={() => toggleBoardCard(idx)}
@@ -152,16 +284,35 @@ const PokerHandEvaluator = ({ playerHand, boardCards, onReset, isShowdown, mode 
               background: selectedBoard.includes(idx) ? '#d1e7dd' : 'transparent',
               fontWeight: selectedBoard.includes(idx) ? 'bold' : 'normal',
             }}
-          >{card}</span>
+          >
+            {card}
+          </span>
         ))}
       </div>
+      
       <details style={{ marginTop: 10 }}>
-        <summary>All combinations</summary>
-        <ul style={{ fontSize: '0.95em' }}>
+        <summary>All combinations ({allHands.length} total)</summary>
+        <ul style={{ fontSize: '0.95em', maxHeight: '200px', overflowY: 'auto' }}>
           {allHands.map((h, i) => (
-            <li key={i}>{h.cards.join(" ")} &mdash; {h.value}</li>
+            <li key={i}>
+              {h.cards.join(" ")} — {h.value} 
+              {h === bestHand && <strong> (BEST)</strong>}
+            </li>
           ))}
         </ul>
+      </details>
+      
+      {/* Debug info */}
+      <details style={{ marginTop: 10 }}>
+        <summary>Debug Info</summary>
+        <div style={{ fontSize: '0.85em', fontFamily: 'monospace' }}>
+          <div>Valid player cards: {validPlayerHand.length} / {playerHand?.length || 0}</div>
+          <div>Valid board cards: {validBoardCards.length} / {boardCards?.length || 0}</div>
+          <div>Total combinations: {allHands.length}</div>
+          <div>Valid combinations: {allHands.filter(h => typeof h.value === 'number' && h.value > 0 && h.value !== 99).length}</div>
+          <div>Selected player indices: [{selectedPlayer.join(', ')}]</div>
+          <div>Selected board indices: [{selectedBoard.join(', ')}]</div>
+        </div>
       </details>
     </div>
   );

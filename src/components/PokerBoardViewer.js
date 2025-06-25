@@ -122,20 +122,36 @@ const PokerBoardViewer = ({
   const [isDealingPlayerHand, setIsDealingPlayerHand] = useState(false);
   const [playerHandInitialized, setPlayerHandInitialized] = useState(false);
   
-  // FIXED: Generate initial player hand cards and store them persistently
-  const generateInitialPlayerHand = useCallback(() => {
+  // Generate initial player hand cards and store them persistently
+  // Also returns the remaining deck with player hand cards removed
+  const generateInitialPlayerHandAndDeck = useCallback(() => {
+    let hand = [];
+    let deckCopy = [...deck];
     if (playerHandCards && Array.isArray(playerHandCards) && playerHandCards.length > 0) {
-      return [
+      hand = [
         ...playerHandCards.slice(0, playerHandSize),
         ...Array(Math.max(0, playerHandSize - playerHandCards.length)).fill(null)
       ];
+      // Remove these cards from the deck
+      hand.forEach(card => {
+        if (card) {
+          const idx = deckCopy.indexOf(card);
+          if (idx !== -1) deckCopy.splice(idx, 1);
+        }
+      });
     } else if (deck.length > 0) {
-      // Generate random cards from the full deck (not filtered by board cards)
-      const shuffledDeck = [...deck].sort(() => Math.random() - 0.5);
-      return shuffledDeck.slice(0, playerHandSize);
+      // Generate random cards from the full deck
+      const shuffledDeck = [...deckCopy].sort(() => Math.random() - 0.5);
+      hand = shuffledDeck.slice(0, playerHandSize);
+      // Remove these cards from the deck
+      hand.forEach(card => {
+        const idx = deckCopy.indexOf(card);
+        if (idx !== -1) deckCopy.splice(idx, 1);
+      });
     } else {
-      return Array(playerHandSize).fill(null);
+      hand = Array(playerHandSize).fill(null);
     }
+    return { hand, deckWithoutHand: deckCopy };
   }, [playerHandCards, playerHandSize, deck]);
 
   // Flatten predefined cards if they're in nested array format
@@ -218,17 +234,19 @@ const PokerBoardViewer = ({
       });
   }, [resolvedConfigPath, resetGameState]);
 
-  // FIXED: Initialize player hand once when deck is available
+  // Initialize player hand and update deck to remove those cards
   useEffect(() => {
     if (!dealPlayerHand) return;
     if (deck.length > 0 && !playerHandInitialized) {
-      const initialHand = generateInitialPlayerHand();
+      const { hand: initialHand, deckWithoutHand } = generateInitialPlayerHandAndDeck();
       setPlayerHand(initialHand);
+      setDeck(deckWithoutHand);
       setPlayerHandDealt(0);
       setPlayerHandInitialized(true);
       console.log("Initial player hand generated:", initialHand);
+      console.log("Deck after removing player hand:", deckWithoutHand);
     }
-  }, [dealPlayerHand, deck.length, playerHandInitialized]); // Remove generateInitialPlayerHand from deps
+  }, [dealPlayerHand, deck.length, playerHandInitialized, generateInitialPlayerHandAndDeck]);
 
   // Validate predefined cards if provided
   useEffect(() => {
@@ -368,31 +386,70 @@ const PokerBoardViewer = ({
     setDealtCount(currentPositions.length);
   };
 
-  // FIXED: Reset hand (generate new random cards)
+  // Reset hand (generate new random cards and update deck)
   const resetHand = () => {
     console.log("Reset hand called");
-    
     // Reset board state
     resetGameState();
-    
     // Generate new deck if not using predefined cards
     if (!flattenedPredefinedCards) {
-      const newDeck = generateDeck();
-      setDeck(newDeck);
-      console.log("Reshuffled deck:", newDeck);
-    }
-    
-    // Reset and regenerate player hand
-    if (dealPlayerHand) {
-      setPlayerHandInitialized(false);
-      setPlayerHandDealt(0);
-      setIsDealingPlayerHand(false);
-      
-      // Generate new player hand immediately
-      const newPlayerHand = generateInitialPlayerHand();
-      setPlayerHand(newPlayerHand);
-      setPlayerHandInitialized(true);
-      console.log("New player hand generated:", newPlayerHand);
+      // Always start with a fresh, shuffled deck
+      let newDeck = generateDeck();
+      newDeck = [...newDeck].sort(() => Math.random() - 0.5);
+      // Generate new player hand and remove those cards from the deck
+      let newPlayerHand = Array(playerHandSize).fill(null);
+      let deckWithoutHand = [...newDeck];
+      if (dealPlayerHand) {
+        setPlayerHandInitialized(false);
+        setPlayerHandDealt(0);
+        setIsDealingPlayerHand(false);
+        const result = (() => {
+          let hand = [];
+          let deckCopy = [...newDeck];
+          if (playerHandCards && Array.isArray(playerHandCards) && playerHandCards.length > 0) {
+            hand = [
+              ...playerHandCards.slice(0, playerHandSize),
+              ...Array(Math.max(0, playerHandSize - playerHandCards.length)).fill(null)
+            ];
+            hand.forEach(card => {
+              if (card) {
+                const idx = deckCopy.indexOf(card);
+                if (idx !== -1) deckCopy.splice(idx, 1);
+              }
+            });
+          } else {
+            const shuffledDeck = [...deckCopy];
+            hand = shuffledDeck.slice(0, playerHandSize);
+            hand.forEach(card => {
+              const idx = deckCopy.indexOf(card);
+              if (idx !== -1) deckCopy.splice(idx, 1);
+            });
+          }
+          return { hand, deckWithoutHand: deckCopy };
+        })();
+        newPlayerHand = result.hand;
+        deckWithoutHand = result.deckWithoutHand;
+        setPlayerHand(newPlayerHand);
+        setPlayerHandInitialized(true);
+        console.log("New player hand generated:", newPlayerHand);
+        console.log("Deck after removing player hand:", deckWithoutHand);
+      }
+      // Set the deck for board dealing (after removing player hand)
+      setDeck(deckWithoutHand);
+      console.log("Deck for board dealing:", deckWithoutHand);
+    } else {
+      // If using predefined cards, just reset player hand state
+      if (dealPlayerHand) {
+        setPlayerHandInitialized(false);
+        setPlayerHandDealt(0);
+        setIsDealingPlayerHand(false);
+        const { hand: newPlayerHand, deckWithoutHand } = generateInitialPlayerHandAndDeck();
+        setPlayerHand(newPlayerHand);
+        setDeck(deckWithoutHand);
+        setPlayerHandInitialized(true);
+        console.log("New player hand generated:", newPlayerHand);
+        console.log("Deck after removing player hand:", deckWithoutHand);
+      }
     }
   };
 
