@@ -22,7 +22,8 @@ const PokerBoardViewer = ({
   playerHandCards = null,
   playerHandSize = 2,
   dealPlayerHand = false,
-  renderExtra = null
+  renderExtra = null,
+  mode = 'high' // NEW: mode prop for high/low hand evaluation
 }) => {
   const resolvedConfigPath = useBaseUrl(configPath);
   
@@ -85,7 +86,6 @@ const PokerBoardViewer = ({
   useEffect(() => {
     if (!dealPlayerHand || !playerHand || !playerHand.filter(Boolean).length) return;
     if (!config || !config.boardCardSchedule) return;
-    
     // All board cards dealt?
     const totalBoardCards = config.boardCardSchedule.flat().length;
     const flatBoardCards = getFlatBoardCards();
@@ -94,13 +94,8 @@ const PokerBoardViewer = ({
       setAutoSelectedBoardCards([]);
       return;
     }
-    
-    // Evaluate best hand using PokerHandEvaluator logic
     try {
-      // Import evaluation functions (Note: This should be moved to top of file in real implementation)
-      const { evaluateCards } = require('../phe/lib/phe.js');
-      
-      // Normalize player hand and board cards
+      const { evaluateCards, evaluateLowHandRank, cardCodesToRanks } = require('../phe/lib/phe.js');
       const normalizeCard = (card) => {
         if (!card || typeof card !== 'string') return null;
         let c = card.trim();
@@ -109,11 +104,8 @@ const PokerBoardViewer = ({
         if (rank === '0') rank = 'T';
         return rank + suit;
       };
-      
       const validPlayerHand = playerHand.filter(Boolean).map(normalizeCard);
       const validBoardCards = flatBoardCards.map(obj => normalizeCard(obj.card));
-      
-      // Generate all 2+3 combos
       function k_combinations(arr, k) {
         const results = [];
         function comb(current, start) {
@@ -130,30 +122,33 @@ const PokerBoardViewer = ({
         comb([], 0);
         return results;
       }
-      
       const handCombos = k_combinations(validPlayerHand, 2);
       const boardCombos = k_combinations(validBoardCards, 3);
-      
       let best = null;
-      
       for (let hi = 0; hi < handCombos.length; hi++) {
         for (let bi = 0; bi < boardCombos.length; bi++) {
           const combo = [...handCombos[hi], ...boardCombos[bi]];
           if (combo.length !== 5 || combo.some(card => !card)) continue;
-          
-          let value = evaluateCards(combo);
+          let value;
+          if (mode === 'low') {
+            const ranks = cardCodesToRanks(combo);
+            if (ranks.some(rank => rank === null || isNaN(rank))) {
+              value = 99;
+            } else {
+              value = evaluateLowHandRank(ranks);
+            }
+          } else {
+            value = evaluateCards(combo);
+          }
           if (!value || value === 0 || typeof value !== 'number') continue;
-          
           if (!best || value < best.value) {
-            // Find indices in playerHand and board
             const playerIdxs = handCombos[hi].map(card => validPlayerHand.findIndex(c => c === card));
             const boardIdxs = boardCombos[bi].map(card => validBoardCards.findIndex(c => c === card));
             best = { value, playerIdxs, boardIdxs };
           }
         }
       }
-      
-      if (best) {
+      if (best && !(mode === "low" && best.value === 99)) {
         setAutoSelectedPlayerHand(best.playerIdxs);
         setAutoSelectedBoardCards(best.boardIdxs);
       } else {
@@ -165,7 +160,7 @@ const PokerBoardViewer = ({
       setAutoSelectedPlayerHand([]);
       setAutoSelectedBoardCards([]);
     }
-  }, [dealPlayerHand, playerHand, boardState, config]);
+  }, [dealPlayerHand, playerHand, boardState, config, mode]);
 
   // Generate initial player hand cards and store them persistently
   const generateInitialPlayerHandAndDeck = useCallback(() => {
@@ -664,7 +659,7 @@ const PokerBoardViewer = ({
       <h3>{config.name}</h3>
       {renderBoard()}
       {renderPlayerHand()}
-      {renderExtra && renderExtra({ playerHand, boardState })}
+      {renderExtra && renderExtra({ playerHand, boardState, mode })}
       <div className="controls">
         <button
           onClick={dealNextStreet}

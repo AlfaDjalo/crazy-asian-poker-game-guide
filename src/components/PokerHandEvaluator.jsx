@@ -236,7 +236,9 @@ const PokerHandEvaluator = ({
   return (
     <div style={{ marginTop: 20 }}>
       <h4>Best 5-card Hand ({mode === 'low' ? 'Low' : 'High'})</h4>
-      {bestHand ? (
+      {mode === 'low' && bestHand && bestHand.value === 99 ? (
+        <div style={{ color: '#d32f2f', fontWeight: 'bold' }}>No low possible</div>
+      ) : bestHand ? (
         <div>
           <b>Cards:</b> {bestHand.cards.join(" ")}<br />
           <b>Value:</b> {bestHand.value}<br />

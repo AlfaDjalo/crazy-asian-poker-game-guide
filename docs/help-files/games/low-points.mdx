@@ -34,10 +34,11 @@ There are a number of ways in which the best low hand can be determined:
   playerHandSize={4}
   dealPlayerHand={true}
   playerHandCards={["AC", "3S", "8H", "JC"]}
-  renderExtra={({ playerHand, boardState }) => {
+  mode="low"
+  renderExtra={({ playerHand, boardState, mode }) => {
     const boardCards = boardState
       ? boardState.flat().filter(cell => cell && cell.card).map(cell => cell.card)
       : [];
-    return <PokerHandEvaluator playerHand={playerHand} boardCards={boardCards} mode="low" />;
+    return <PokerHandEvaluator playerHand={playerHand} boardCards={boardCards} mode={mode} />;
   }}
 />

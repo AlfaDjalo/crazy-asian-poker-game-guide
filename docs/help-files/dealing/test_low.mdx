@@ -1,5 +1,5 @@
 ---
-title: Test High
+title: Test Low
 description: Testing Board Viewer
 sidebar_position: 4
 ---
@@ -13,7 +13,7 @@ This page tests the PokerBoardViewer.
   configPath="/data/boards/single-board.json"
   playerHandSize={4}
   dealPlayerHand={true}
-  mode="high"
+  mode="low"
   renderExtra={({ playerHand, boardState, mode }) => {
     const boardCards = boardState
       ? boardState.flat().filter(cell => cell && cell.card).map(cell => cell.card)
